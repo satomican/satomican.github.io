@@ -291,6 +291,8 @@
   .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
   .fine { font-size: 11.5px; color: var(--text-muted); margin-top: 14px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 12px; }
   .error-msg { color: var(--bad); font-size: 13px; margin-top: -6px; margin-bottom: 12px; display: none; }
+  .link-btn { display: block; margin: 12px auto 0; background: none; border: none; color: var(--text-muted); font-size: 13px; text-decoration: underline; padding: 4px; }
+  .link-btn:hover { color: var(--text); }
   .toast {
     position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%;
     transform: translateX(-50%) translateY(12px);
@@ -312,6 +314,7 @@
   .offer-row-top { display: flex; justify-content: space-between; gap: 10px; }
   .offer-title { font-size: 14.5px; font-weight: 600; }
   .offer-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: "IBM Plex Mono"; }
+  .offer-month { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 -2px; }
   .empty { color: var(--text-muted); font-size: 14px; padding: 20px 0; }
 
   footer.site { border-top: 1px solid var(--border); padding: 28px 0 40px; }
@@ -452,6 +455,15 @@
       <div class="field"><label for="siPass">Password</label><input id="siPass" type="password" autocomplete="current-password"></div>
       <div class="error-msg" id="siError"></div>
       <button class="btn btn-accent btn-block" onclick="handleSignin()">Sign in</button>
+      <button type="button" class="link-btn" onclick="switchAuthTab('forgot')">Forgot your password?</button>
+    </div>
+    <div id="forgotForm" style="display:none;">
+      <p style="font-size:13.5px;color:var(--text-muted);margin:0 0 14px;line-height:1.5;">Enter the email you signed up with and we'll send you a link to set a new password.</p>
+      <div class="field"><label for="fpEmail">Email</label><input id="fpEmail" type="email" autocomplete="email" placeholder="you@company.com"></div>
+      <div class="error-msg" id="fpError"></div>
+      <div class="error-msg" id="fpInfo" style="color:var(--good);"></div>
+      <button class="btn btn-accent btn-block" id="fpBtn" onclick="handleForgotPassword()">Send reset link</button>
+      <button type="button" class="link-btn" onclick="switchAuthTab('signin')">Back to sign in</button>
     </div>
     <div id="signupForm" style="display:none;">
       <div class="field"><label for="suName">Full name</label><input id="suName" type="text" autocomplete="name"></div>
@@ -474,6 +486,20 @@
       <button class="btn btn-accent btn-block" onclick="handleSignup()">Create account</button>
     </div>
     <p class="fine">No payment is taken on this site. Your address is only used to ship an accepted offer.</p>
+  </div>
+</div>
+
+<!-- ============ NEW PASSWORD MODAL (opened from the reset email link) ============ -->
+<div class="overlay" id="resetOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Set a new password</h3>
+      <button class="close-x" onclick="closeModal('resetOverlay')">&times;</button>
+    </div>
+    <div class="field"><label for="npPass">New password (8+ characters)</label><input id="npPass" type="password" autocomplete="new-password"></div>
+    <div class="field"><label for="npPass2">Confirm new password</label><input id="npPass2" type="password" autocomplete="new-password"></div>
+    <div class="error-msg" id="npError"></div>
+    <button class="btn btn-accent btn-block" id="npBtn" onclick="handleSetNewPassword()">Save new password</button>
   </div>
 </div>
 
@@ -815,7 +841,15 @@
     document.getElementById("tabSignup").classList.toggle("active", tab === "signup");
     document.getElementById("signinForm").style.display = tab === "signin" ? "block" : "none";
     document.getElementById("signupForm").style.display = tab === "signup" ? "block" : "none";
-    document.getElementById("authTitle").textContent = tab === "signin" ? "Sign in" : "Create account";
+    document.getElementById("forgotForm").style.display = tab === "forgot" ? "block" : "none";
+    document.getElementById("authTitle").textContent =
+      tab === "signin" ? "Sign in" : tab === "signup" ? "Create account" : "Reset your password";
+    if (tab === "forgot") {
+      var typed = document.getElementById("siEmail").value.trim();
+      if (typed && !document.getElementById("fpEmail").value) document.getElementById("fpEmail").value = typed;
+      setErr("fpError", "");
+      setErr("fpInfo", "");
+    }
   };
 
   function setErr(id, msg){
@@ -904,6 +938,84 @@
     }
   };
 
+  /* ---------- Forgot password ---------- */
+  var resetBusy = false;
+  window.handleForgotPassword = async function(){
+    if (resetBusy) return;
+    var email = document.getElementById("fpEmail").value.trim().toLowerCase();
+    setErr("fpError", "");
+    setErr("fpInfo", "");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setErr("fpError", "Enter a valid email address."); return; }
+    if (!sb) { setErr("fpError", "Couldn't connect — please refresh the page."); return; }
+    resetBusy = true;
+    var btn = document.getElementById("fpBtn");
+    btn.disabled = true;
+    var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    resetBusy = false;
+    btn.disabled = false;
+    if (res.error) {
+      if (res.error.status === 429 || /security purposes|rate limit/i.test(res.error.message || "")) {
+        setErr("fpError", "Too many requests — please wait a minute and try again.");
+      } else {
+        setErr("fpError", "Couldn't send the email — please try again later.");
+      }
+      return;
+    }
+    // Same message whether or not the account exists, so the form can't be used to look up emails.
+    setErr("fpInfo", "If an account exists for " + email + ", a reset link is on its way. Check your inbox (and spam folder).");
+  };
+
+  var recoveryPending = /type=recovery/.test(window.TR_URL_HASH || "");
+
+  function openNewPasswordModal(){
+    recoveryPending = false;
+    if (document.getElementById("resetOverlay").classList.contains("open")) return;
+    document.getElementById("npPass").value = "";
+    document.getElementById("npPass2").value = "";
+    setErr("npError", "");
+    closeModal("authOverlay");
+    openModal("resetOverlay");
+  }
+
+  var newPassBusy = false;
+  window.handleSetNewPassword = async function(){
+    if (newPassBusy) return;
+    var p1 = document.getElementById("npPass").value;
+    var p2 = document.getElementById("npPass2").value;
+    setErr("npError", "");
+    if (p1.length < 8) { setErr("npError", "Use at least 8 characters."); return; }
+    if (p1 !== p2) { setErr("npError", "The two passwords don't match."); return; }
+    newPassBusy = true;
+    document.getElementById("npBtn").disabled = true;
+    var res = await sb.auth.updateUser({ password: p1 });
+    newPassBusy = false;
+    document.getElementById("npBtn").disabled = false;
+    if (res.error) {
+      var m = res.error.message || "";
+      if (/session|expired|jwt/i.test(m)) setErr("npError", "This reset link has expired. Please request a new one from \"Forgot your password?\".");
+      else if (/different from the old/i.test(m)) setErr("npError", "Please choose a password different from your old one.");
+      else setErr("npError", "Couldn't update the password: " + m);
+      return;
+    }
+    document.getElementById("npPass").value = "";
+    document.getElementById("npPass2").value = "";
+    closeModal("resetOverlay");
+    showToast("Password updated — you're signed in");
+  };
+
+  // Came from an expired or already-used reset link
+  (function(){
+    var h = window.TR_URL_HASH || "";
+    if (/error_code=|error=/.test(h)) {
+      history.replaceState(null, "", location.pathname + location.search);
+      openAuth("forgot");
+      setErr("fpError", "That reset link has expired or was already used. Enter your email to get a new one.");
+    } else if (h === "#forgot-password") {
+      history.replaceState(null, "", location.pathname + location.search);
+      openAuth("forgot");
+    }
+  })();
+
   window.signOut = async function(){
     if (sb) await sb.auth.signOut();
     showToast("Signed out");
@@ -975,7 +1087,10 @@
       // The first event is the page restoring an existing session — no "Signed in" toast for that.
       var quiet = firstAuthEvent; firstAuthEvent = false;
       setTimeout(function(){
-        handleAuthChange(event === "SIGNED_OUT" ? null : authSession, quiet);
+        // Arriving from a reset-password email: sign in quietly, then ask for the new password.
+        var isRecovery = authSession && (event === "PASSWORD_RECOVERY" || recoveryPending);
+        handleAuthChange(event === "SIGNED_OUT" ? null : authSession, quiet || isRecovery);
+        if (isRecovery) openNewPasswordModal();
       }, 0);
     });
   }
@@ -1120,27 +1235,37 @@
     var list = document.getElementById("myOffersList");
     if (!session) { list.innerHTML = ""; return; }
     list.innerHTML = '<div class="empty">Loading…</div>';
+    // Latest 10 offers from the last 3 months, newest first, grouped by month.
+    var since = new Date();
+    since.setMonth(since.getMonth() - 3);
     var res = await sb.from("offers")
       .select("id, lot_id, amount, note, status, submitted_at, lots(title)")
       .eq("user_id", session.id)
-      .order("submitted_at", { ascending: false });
+      .gte("submitted_at", since.toISOString())
+      .order("submitted_at", { ascending: false })
+      .limit(10);
     if (res.error) { list.innerHTML = '<div class="empty">Couldn\'t load your offers — please try again.</div>'; return; }
     var mine = res.data;
     if (!mine.length) {
-      list.innerHTML = '<div class="empty">No offers yet. Browse the lots and send your first offer.</div>';
+      list.innerHTML = '<div class="empty">No offers in the last 3 months. Browse the lots and send an offer.</div>';
       return;
     }
-    list.innerHTML = mine.map(function(o){
-      var d = new Date(o.submitted_at);
-      var cls = o.status === "Accepted" ? "badge-good" : o.status === "Declined" ? "badge-bad" : "badge-warn";
-      var title = (o.lots && o.lots.title) || o.lot_id;
-      return '<div class="offer-row">' +
-        '<div class="offer-row-top"><span class="offer-title">' + escapeHtml(title) + '</span>' +
-        '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
-        '<div class="offer-meta">$' + o.amount + ' · ' + d.toLocaleDateString() + '</div>' +
-        (o.note ? '<div class="card-spec" style="margin-top:6px;">' + escapeHtml(o.note) + '</div>' : '') +
-        '</div>';
-    }).join("");
+    var lastMonth = "";
+    list.innerHTML = '<div class="offer-meta" style="margin:0 0 2px;">Showing your latest ' + mine.length + ' offer' + (mine.length === 1 ? '' : 's') + ' from the last 3 months.</div>' +
+      mine.map(function(o){
+        var d = new Date(o.submitted_at);
+        var month = d.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+        var heading = month !== lastMonth ? '<div class="offer-month">' + escapeHtml(month) + '</div>' : '';
+        lastMonth = month;
+        var cls = o.status === "Accepted" ? "badge-good" : o.status === "Declined" ? "badge-bad" : "badge-warn";
+        var title = (o.lots && o.lots.title) || o.lot_id;
+        return heading + '<div class="offer-row">' +
+          '<div class="offer-row-top"><span class="offer-title">' + escapeHtml(title) + '</span>' +
+          '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
+          '<div class="offer-meta">$' + o.amount + ' · ' + d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) + '</div>' +
+          (o.note ? '<div class="card-spec" style="margin-top:6px;">' + escapeHtml(o.note) + '</div>' : '') +
+          '</div>';
+      }).join("");
   }
 
 })();

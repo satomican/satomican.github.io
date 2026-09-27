@@ -3,6 +3,10 @@
   "use strict";
   var cfg = window.TR_CONFIG || {};
 
+  // Remember the URL fragment before supabase-js reads (and clears) it — pages use this to
+  // spot a password-reset link ("type=recovery") or an expired link ("error_code=...").
+  window.TR_URL_HASH = window.location.hash || "";
+
   // Supabase client, shared as window.sb (only on pages that load supabase-js)
   if (window.supabase && cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY) {
     window.sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
