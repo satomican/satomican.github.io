@@ -314,6 +314,15 @@
   .offer-row-top { display: flex; justify-content: space-between; gap: 10px; }
   .offer-title { font-size: 14.5px; font-weight: 600; }
   .offer-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: "IBM Plex Mono"; }
+  .my-offers-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .sort-select {
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    padding: 6px 8px; font-size: 13px; border-radius: 4px; font-family: inherit;
+  }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 12.5px; color: var(--text-muted); }
+  .pager:empty { display: none; }
+  .pager .btn { padding: 6px 11px; font-size: 13px; }
+  .pager .btn:disabled { opacity: 0.4; cursor: default; }
   .offer-month { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 -2px; }
   .empty { color: var(--text-muted); font-size: 14px; padding: 20px 0; }
 
@@ -568,8 +577,18 @@
       <label class="checkbox-row"><input type="checkbox" id="acctNotify"> Email me when a new lot is posted</label>
       <button class="btn" onclick="saveAddress()">Save preferences</button>
     </div>
-    <h3 style="font-size:18px;margin-bottom:10px;">My offers</h3>
+    <div class="my-offers-head">
+      <h3 style="font-size:18px;">My offers</h3>
+      <select id="myOffersSort" class="sort-select" aria-label="Sort offers">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="amount_desc">Amount: high to low</option>
+        <option value="amount_asc">Amount: low to high</option>
+        <option value="status">Status</option>
+      </select>
+    </div>
     <div class="offers-list" id="myOffersList"></div>
+    <div class="pager" id="myOffersPager"></div>
   </div>
 </div>
 
@@ -1231,11 +1250,28 @@
     showToast("Offer sent — $" + amount + " on " + item.title + ". We'll be in touch soon.", "🚀");
   };
 
+  /* ---------- My offers: last 3 months, sortable, 10 per page ---------- */
+  var MY_OFFERS_PAGE_SIZE = 10;
+  var myOffers = [];          // every offer from the last 3 months (loaded once per open)
+  var myOffersPage = 0;
+  var STATUS_ORDER = { "Pending review": 0, "Accepted": 1, "Declined": 2 };
+
+  function sortMyOffers(list, mode){
+    var time = function(o){ return new Date(o.submitted_at).getTime(); };
+    return list.slice().sort(function(a, b){
+      if (mode === "oldest") return time(a) - time(b);
+      if (mode === "amount_desc") return (b.amount - a.amount) || (time(b) - time(a));
+      if (mode === "amount_asc") return (a.amount - b.amount) || (time(b) - time(a));
+      if (mode === "status") return ((STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9)) || (time(b) - time(a));
+      return time(b) - time(a);   // newest
+    });
+  }
+
   async function renderMyOffers(){
     var list = document.getElementById("myOffersList");
+    document.getElementById("myOffersPager").innerHTML = "";
     if (!session) { list.innerHTML = ""; return; }
     list.innerHTML = '<div class="empty">Loading…</div>';
-    // Latest 10 offers from the last 3 months, newest first, grouped by month.
     var since = new Date();
     since.setMonth(since.getMonth() - 3);
     var res = await sb.from("offers")
@@ -1243,30 +1279,61 @@
       .eq("user_id", session.id)
       .gte("submitted_at", since.toISOString())
       .order("submitted_at", { ascending: false })
-      .limit(10);
+      .limit(500);
     if (res.error) { list.innerHTML = '<div class="empty">Couldn\'t load your offers — please try again.</div>'; return; }
-    var mine = res.data;
-    if (!mine.length) {
+    myOffers = res.data;
+    myOffersPage = 0;
+    drawMyOffers();
+  }
+
+  function drawMyOffers(){
+    var list = document.getElementById("myOffersList");
+    var pager = document.getElementById("myOffersPager");
+    if (!myOffers.length) {
       list.innerHTML = '<div class="empty">No offers in the last 3 months. Browse the lots and send an offer.</div>';
+      pager.innerHTML = "";
       return;
     }
+    var mode = document.getElementById("myOffersSort").value;
+    var sorted = sortMyOffers(myOffers, mode);
+    var pages = Math.ceil(sorted.length / MY_OFFERS_PAGE_SIZE);
+    myOffersPage = Math.min(Math.max(myOffersPage, 0), pages - 1);
+    var start = myOffersPage * MY_OFFERS_PAGE_SIZE;
+    var pageItems = sorted.slice(start, start + MY_OFFERS_PAGE_SIZE);
+    var byDate = mode === "newest" || mode === "oldest";   // month headings only make sense in date order
+
     var lastMonth = "";
-    list.innerHTML = '<div class="offer-meta" style="margin:0 0 2px;">Showing your latest ' + mine.length + ' offer' + (mine.length === 1 ? '' : 's') + ' from the last 3 months.</div>' +
-      mine.map(function(o){
-        var d = new Date(o.submitted_at);
-        var month = d.toLocaleDateString("en-US", { year: "numeric", month: "long" });
-        var heading = month !== lastMonth ? '<div class="offer-month">' + escapeHtml(month) + '</div>' : '';
-        lastMonth = month;
-        var cls = o.status === "Accepted" ? "badge-good" : o.status === "Declined" ? "badge-bad" : "badge-warn";
-        var title = (o.lots && o.lots.title) || o.lot_id;
-        return heading + '<div class="offer-row">' +
-          '<div class="offer-row-top"><span class="offer-title">' + escapeHtml(title) + '</span>' +
-          '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
-          '<div class="offer-meta">$' + o.amount + ' · ' + d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) + '</div>' +
-          (o.note ? '<div class="card-spec" style="margin-top:6px;">' + escapeHtml(o.note) + '</div>' : '') +
-          '</div>';
-      }).join("");
+    list.innerHTML = pageItems.map(function(o){
+      var d = new Date(o.submitted_at);
+      var month = d.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+      var heading = byDate && month !== lastMonth ? '<div class="offer-month">' + escapeHtml(month) + '</div>' : '';
+      lastMonth = month;
+      var cls = o.status === "Accepted" ? "badge-good" : o.status === "Declined" ? "badge-bad" : "badge-warn";
+      var title = (o.lots && o.lots.title) || o.lot_id;
+      return heading + '<div class="offer-row">' +
+        '<div class="offer-row-top"><span class="offer-title">' + escapeHtml(title) + '</span>' +
+        '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
+        '<div class="offer-meta">$' + o.amount + ' · ' + d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) + '</div>' +
+        (o.note ? '<div class="card-spec" style="margin-top:6px;">' + escapeHtml(o.note) + '</div>' : '') +
+        '</div>';
+    }).join("");
+
+    var summary = (start + 1) + "–" + (start + pageItems.length) + " of " + sorted.length + " (last 3 months)";
+    pager.innerHTML = pages > 1
+      ? '<button class="btn" id="myOffersPrev"' + (myOffersPage === 0 ? ' disabled' : '') + '>&larr; Prev</button>' +
+        '<span>' + summary + '</span>' +
+        '<button class="btn" id="myOffersNext"' + (myOffersPage >= pages - 1 ? ' disabled' : '') + '>Next &rarr;</button>'
+      : '<span>' + summary + '</span>';
+    if (pages > 1) {
+      document.getElementById("myOffersPrev").onclick = function(){ myOffersPage--; drawMyOffers(); list.scrollIntoView({ block: "nearest" }); };
+      document.getElementById("myOffersNext").onclick = function(){ myOffersPage++; drawMyOffers(); list.scrollIntoView({ block: "nearest" }); };
+    }
   }
+
+  document.getElementById("myOffersSort").addEventListener("change", function(){
+    myOffersPage = 0;
+    drawMyOffers();
+  });
 
 })();
 </script>
