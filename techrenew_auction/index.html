@@ -170,7 +170,8 @@
   }
 
   /* ---------- Listings ---------- */
-  section.grading { padding-top: 26px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+  section.grading { padding-top: 26px; }
+  .grading-inner { padding-bottom: 22px; border-bottom: 1px solid var(--border); }
   .grading-title { font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; font-family: "Inter"; }
   .grading-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
   .grading-item { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -395,19 +396,21 @@
   </section>
 
   <section class="grading wrap">
-    <h2 class="grading-title">Condition grades</h2>
-    <div class="grading-grid">
-      <div class="grading-item">
-        <span class="badge badge-good">Grade A</span>
-        <p>Like new — minimal to no visible wear. Fully tested and working.</p>
-      </div>
-      <div class="grading-item">
-        <span class="badge badge-warn">Grade B</span>
-        <p>Light wear — visible scratches or scuffs from normal use. Fully tested and working.</p>
-      </div>
-      <div class="grading-item">
-        <span class="badge badge-bad">Grade C</span>
-        <p>Functional — heavier cosmetic wear, or missing a minor accessory (e.g. a keycap or charger). Fully tested and working.</p>
+    <div class="grading-inner">
+      <h2 class="grading-title">Condition grades</h2>
+      <div class="grading-grid">
+        <div class="grading-item">
+          <span class="badge badge-good">Grade A</span>
+          <p>Like new — minimal to no visible wear. Fully tested and working.</p>
+        </div>
+        <div class="grading-item">
+          <span class="badge badge-warn">Grade B</span>
+          <p>Light wear — visible scratches or scuffs from normal use. Fully tested and working.</p>
+        </div>
+        <div class="grading-item">
+          <span class="badge badge-bad">Grade C</span>
+          <p>Functional — heavier cosmetic wear, or missing a minor accessory (e.g. a keycap or charger). Fully tested and working.</p>
+        </div>
       </div>
     </div>
   </section>
