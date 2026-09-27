@@ -7,13 +7,13 @@
 <meta name="robots" content="noindex, nofollow">
 <meta property="og:title" content="techrenew — Admin">
 <meta property="og:description" content="Manage lots, offers and customers for the techrenew site.">
-<meta property="og:image" content="https://helloamericancan-ship-it.github.io/techrenew_auction/og-image.png">
+<meta property="og:image" content="https://satomican.github.io/techrenew_auction/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://helloamericancan-ship-it.github.io/techrenew_auction/admin.html">
+<meta property="og:url" content="https://satomican.github.io/techrenew_auction/admin.html">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://helloamericancan-ship-it.github.io/techrenew_auction/og-image.png">
+<meta name="twitter:image" content="https://satomican.github.io/techrenew_auction/og-image.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23FFFFFF' stroke='%23D8DBDE' stroke-width='1'/%3E%3Cpath d='M9 6v12l9-6z' fill='%237CB342'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,6 +44,7 @@
   .top-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; max-width: 880px; margin: 0 auto; }
   .brand { font-size: 26px; font-weight: 700; }
   .b-tech { color: var(--brand-orange); } .b-renew { color: var(--brand-green); }
+  .b-arrow { color: var(--text-muted); font-size: 0.45em; vertical-align: middle; padding: 0 2px; }
   .brand-sub { font-size: 11px; color: var(--text-muted); }
 
   .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 8px 13px; font-size: 13.5px; font-weight: 500; border-radius: 4px; cursor: pointer; }
@@ -125,7 +126,7 @@
 <div id="app" style="display:none;">
 <header class="top">
   <div class="top-row">
-    <span class="brand"><span class="b-tech">tech</span>&#9654;<span class="b-renew">renew</span> <span style="font-size:13px;color:var(--text-muted);font-weight:500;">/ Admin</span></span>
+    <span class="brand"><span class="b-tech">tech</span><span class="b-arrow">&#9654;</span><span class="b-renew">renew</span> <span style="font-size:13px;color:var(--text-muted);font-weight:500;">/ Admin</span></span>
     <button class="btn btn-sm" onclick="signOutAdmin()">Sign out</button>
   </div>
 </header>
@@ -137,6 +138,7 @@
     <button class="tab2" data-panel="panelOffers">Offers</button>
     <button class="tab2" data-panel="panelCustomers">Customers</button>
     <button class="tab2" data-panel="panelEmail">Email log</button>
+    <button class="tab2" data-panel="panelMessages">Messages</button>
     <button class="tab2" data-panel="panelBackup">Backup</button>
   </div>
 
@@ -165,9 +167,6 @@
         <div class="field"><label>Lot ID (optional)</label><input id="newId" placeholder="auto-generated if blank, e.g. TR-SRV-0231"></div>
         <div class="field"><label>Asking price (USD)</label><input id="newPrice" type="number" min="1" placeholder="150"></div>
         <div class="field" style="grid-column:1/-1;"><label>Spec / description</label><textarea id="newSpec" placeholder="e.g. Core i5-10500T · 256GB SSD · 16GB RAM"></textarea></div>
-        <div class="field"><label>Closes at (Eastern Time)</label><input id="newCloseAt" type="datetime-local">
-          <div class="field-hint">US Eastern Time (UTC-5). This prototype doesn't adjust for daylight saving.</div>
-        </div>
         <div class="field"><label>Photos (up to 10)</label><input id="newPhoto" type="file" accept="image/*" multiple></div>
         <div class="field" style="grid-column:1/-1;"><label>Item list (.xlsx/.xls/.csv, optional)</label><input id="newInventory" type="file" accept=".xlsx,.xls,.csv">
           <div class="field-hint">First row should be column headers. Customers get a "Download item list" button — the file itself isn't shown on the site.</div>
@@ -207,6 +206,14 @@
       <p style="font-size:13px;color:var(--text-muted);">This is a simulation of sent emails. Real delivery needs a backend connected to an email API (e.g. Resend, SendGrid). An entry is added here every time an offer is submitted, accepted, or declined.</p>
     </div>
     <div id="emailLog" class="card2"></div>
+  </section>
+
+  <!-- ===== CONTACT MESSAGES PANEL ===== -->
+  <section id="panelMessages" class="panel">
+    <div class="card2">
+      <p style="font-size:13px;color:var(--text-muted);">Messages submitted through the "Contact us" form on the customer site. Reply from your own email client — this prototype doesn't send email.</p>
+    </div>
+    <div id="messageList"></div>
   </section>
 
   <!-- ===== BACKUP PANEL ===== -->
@@ -255,7 +262,7 @@
   var GRADE_LABEL = { A:"Grade A · Like new", B:"Grade B · Light wear", C:"Grade C · Functional" };
   var GRADE_CLASS = { A:"badge-good", B:"badge-warn", C:"badge-bad" };
   var CAT_LABEL = { desktop:"Desktop", laptop:"Laptop", server:"Server", memory:"Memory", power:"Power" };
-  var BACKUP_KEYS = ["tr_listings", "tr_accounts", "tr_offers", "tr_deadlines", "tr_email_log", "tr_seeded_defaults"];
+  var BACKUP_KEYS = ["tr_listings", "tr_accounts", "tr_offers", "tr_email_log", "tr_seeded_defaults", "tr_contact_messages"];
 
   /* ---- gate ---- */
   window.tryGate = function(){
@@ -285,6 +292,7 @@
     if (btn.dataset.panel === "panelOffers") renderOffers();
     if (btn.dataset.panel === "panelEmail") renderEmailLog();
     if (btn.dataset.panel === "panelCustomers") renderCustomers();
+    if (btn.dataset.panel === "panelMessages") renderMessages();
     if (btn.dataset.panel === "panelBackup") renderBackupPanel();
   });
 
@@ -301,6 +309,7 @@
     renderOffers();
     renderEmailLog();
     renderCustomers();
+    renderMessages();
     renderBackupPanel();
   }
 
@@ -364,25 +373,6 @@
     return prefix + "-" + Math.floor(1000 + Math.random()*9000);
   }
 
-  var EST_OFFSET_MS = 5 * 3600 * 1000; // UTC-5, no daylight saving adjustment
-
-  function estStringToUTCms(str){
-    if (!str) return null;
-    var parts = str.split(/[-T:]/).map(Number); // [Y, M, D, H, Min]
-    if (parts.length < 5 || parts.some(isNaN)) return null;
-    var wallClockAsUTC = Date.UTC(parts[0], parts[1] - 1, parts[2], parts[3], parts[4]);
-    return wallClockAsUTC + EST_OFFSET_MS;
-  }
-
-  function defaultCloseAtString(hoursAhead){
-    var estMs = Date.now() + hoursAhead * 3600 * 1000 - EST_OFFSET_MS;
-    var d = new Date(estMs);
-    function pad(n){ return String(n).padStart(2, "0"); }
-    return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) + "T" + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
-  }
-  var newCloseAtInput = document.getElementById("newCloseAt");
-  if (newCloseAtInput) newCloseAtInput.value = defaultCloseAtString(24);
-
   function compressImage(file, maxDim, quality){
     return new Promise(function(resolve){
       var reader = new FileReader();
@@ -441,14 +431,10 @@
     var customId = document.getElementById("newId").value.trim();
     var price = parseFloat(document.getElementById("newPrice").value);
     var spec = document.getElementById("newSpec").value.trim();
-    var closeAtStr = document.getElementById("newCloseAt").value;
-    var closeAtUTCms = estStringToUTCms(closeAtStr);
     var fileInput = document.getElementById("newPhoto");
     var invInput = document.getElementById("newInventory");
 
     if (!title || !price) { showNotice("Enter a title and an asking price.", true); return; }
-    if (!closeAtUTCms) { showNotice("Pick a close date and time.", true); return; }
-    if (closeAtUTCms <= Date.now()) { showNotice("Pick a close time in the future.", true); return; }
 
     var existingList = getLots();
     if (customId && existingList.some(function(it){ return it.id === customId; })) {
@@ -463,16 +449,12 @@
       if (inventory) lot.inventory = inventory;
       list.push(lot);
       setLots(list);
-      var deadlines = safeGet("tr_deadlines", {});
-      deadlines[id] = closeAtUTCms;
-      safeSet("tr_deadlines", deadlines);
       notifySubscribers(title, price, CAT_LABEL[cat]);
       showNotice("Lot added: " + title);
       document.getElementById("newTitle").value = "";
       document.getElementById("newId").value = "";
       document.getElementById("newPrice").value = "";
       document.getElementById("newSpec").value = "";
-      document.getElementById("newCloseAt").value = defaultCloseAtString(24);
       fileInput.value = "";
       invInput.value = "";
       renderLots();
@@ -710,6 +692,22 @@
         '<span class="badge ' + (c.notifyNewLots ? "badge-good" : "badge-warn") + '">' + (c.notifyNewLots ? "Subscribed" : "Not subscribed") + '</span></div>' +
         '<div class="offer-meta">' + escapeHtml(c.email) + '</div>' +
         (addressLine ? '<div class="offer-meta" style="margin-top:4px;">' + escapeHtml(addressLine) + '</div>' : '') +
+        '</div>';
+    }).join("");
+  }
+
+  function renderMessages(){
+    var messages = safeGet("tr_contact_messages", []);
+    var wrap = document.getElementById("messageList");
+    if (!wrap) return;
+    if (!messages.length) { wrap.innerHTML = '<div class="empty">No messages yet.</div>'; return; }
+    wrap.innerHTML = messages.map(function(m){
+      return '<div class="offer-card">' +
+        '<div class="offer-top"><strong>' + escapeHtml(m.name || "(no name)") + '</strong>' +
+        '<a class="btn btn-sm" href="mailto:' + encodeURIComponent(m.email) + '">Reply by email</a></div>' +
+        '<div class="offer-meta">' + escapeHtml(m.email) + '</div>' +
+        '<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;">' + escapeHtml(m.message) + '</div>' +
+        '<div class="offer-meta" style="margin-top:6px;">' + new Date(m.submittedAt).toLocaleString("en-US") + '</div>' +
         '</div>';
     }).join("");
   }

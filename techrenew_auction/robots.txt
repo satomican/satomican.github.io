@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 
-Sitemap: https://helloamericancan-ship-it.github.io/techrenew_auction/sitemap.xml
+Sitemap: https://satomican.github.io/techrenew_auction/sitemap.xml

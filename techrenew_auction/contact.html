@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contact us — techrenew</title>
+<meta name="description" content="Get in touch with techrenew — email custsrv@techrenew.com or send us a message.">
+<meta property="og:title" content="Contact us — techrenew">
+<meta property="og:description" content="Get in touch with techrenew — email custsrv@techrenew.com or send us a message.">
+<meta property="og:image" content="https://satomican.github.io/techrenew_auction/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://satomican.github.io/techrenew_auction/contact.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="techrenew">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://satomican.github.io/techrenew_auction/og-image.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23FFFFFF' stroke='%23D8DBDE' stroke-width='1'/%3E%3Cpath d='M9 6v12l9-6z' fill='%237CB342'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #14171B; --surface: #1B1F24; --surface-2: #22262C; --border: #33383F;
+    --text: #ECEDEE; --text-muted: #9AA0A8;
+    --accent: #E2A33D; --accent-ink: #14171B;
+    --bad: #D97A6E;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4);
+    --brand-orange: #DD7E2C; --brand-green: #7CB342;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column; min-height: 100%;
+  }
+  main { flex: 1; }
+  h1, h2, .display { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-weight: 600; letter-spacing: 0.01em; line-height: 1.05; margin: 0; }
+  a { color: inherit; }
+  img, svg { max-width: 100%; }
+  button { font-family: inherit; cursor: pointer; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+  header.site { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .header-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .brand-mark { width: 42px; height: 42px; border-radius: 50%; background: #FFFFFF; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex: none; }
+  .brand-mark svg { width: 19px; height: 19px; color: var(--brand-green); }
+  .brand-name { font-size: 28px; letter-spacing: 0.01em; font-weight: 700; }
+  .b-tech { color: var(--brand-orange); }
+  .b-renew { color: var(--brand-green); }
+  .b-arrow { color: var(--text-muted); font-size: 0.45em; vertical-align: middle; padding: 0 2px; }
+  .brand-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 0.02em; margin-top: -1px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 9px 14px; font-size: 14px; font-weight: 500; border-radius: 3px; white-space: nowrap; text-decoration: none; display: inline-block; }
+  .btn:active { transform: translateY(1px); }
+  .btn-accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; border: none; }
+
+  section.info { padding: 48px 0 60px; }
+  section.info h1 { font-size: clamp(30px, 5vw, 42px); margin-bottom: 20px; }
+  section.info p { color: var(--text-muted); line-height: 1.75; margin-bottom: 14px; max-width: 620px; font-size: 15.5px; }
+  .contact-email { color: var(--brand-orange); font-weight: 600; text-decoration: none; }
+  .contact-email:hover { text-decoration: underline; }
+
+  .contact-form { max-width: 440px; margin-top: 22px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 5px; }
+  .field input, .field textarea {
+    width: 100%; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text); padding: 10px 11px; font-size: 15px; border-radius: 4px; font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 90px; }
+  .error-msg { color: var(--bad); font-size: 13px; margin: -6px 0 12px; min-height: 1em; }
+
+  footer.site { border-top: 1px solid var(--border); padding: 28px 0 40px; }
+  footer.site .wrap { display: flex; flex-direction: column; gap: 6px; }
+  footer.site .f-name { font-size: 15px; font-weight: 600; }
+  footer.site p { color: var(--text-muted); font-size: 13px; margin: 0; max-width: 50ch; line-height: 1.5; }
+  footer.site .footer-links { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; }
+  footer.site .footer-links a { color: var(--text-muted); font-size: 13px; text-decoration: none; }
+  footer.site .footer-links a:hover { color: var(--text); text-decoration: underline; }
+
+  .toast {
+    position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    padding: 12px 18px 12px 14px; border-radius: 8px; box-shadow: var(--shadow);
+    font-size: 14px; font-weight: 500; z-index: 200; opacity: 0; pointer-events: none;
+    transition: opacity 0.28s ease, transform 0.28s cubic-bezier(.2,.8,.3,1);
+    display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast-icon {
+    flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+    color: var(--accent-ink); display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap header-row">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4v16l14-8L6 4z"/></svg></span>
+      <span>
+        <span class="brand-name" style="display:block;"><span class="b-tech">tech</span><span class="b-arrow">&#9654;</span><span class="b-renew">renew</span></span>
+        <span class="brand-sub">Great prices, fast shipping</span>
+      </span>
+    </a>
+    <a class="btn" href="index.html">Browse lots</a>
+  </div>
+</header>
+
+<main>
+  <section class="info wrap">
+    <h1>Contact us</h1>
+    <p>Email us any time at <a class="contact-email" href="mailto:custsrv@techrenew.com">custsrv@techrenew.com</a>, or send a message below and we'll get back to you.</p>
+
+    <form class="contact-form" id="contactForm" onsubmit="return false;">
+      <div class="field"><label for="cName">Name</label><input id="cName" type="text" autocomplete="name"></div>
+      <div class="field"><label for="cEmail">Email</label><input id="cEmail" type="email" autocomplete="email"></div>
+      <div class="field"><label for="cMessage">Message</label><textarea id="cMessage" rows="4"></textarea></div>
+      <div class="error-msg" id="contactError"></div>
+      <button class="btn btn-accent" onclick="submitContactMessage()">Send message</button>
+    </form>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span class="f-name"><span class="b-tech">tech</span><span class="b-arrow">&#9654;</span><span class="b-renew">renew</span></span>
+    <p>Used desktops, laptops, servers, memory and power hardware, sold wholesale.</p>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About us</a>
+      <a href="contact.html">Contact us</a>
+      <a href="mailto:custsrv@techrenew.com">custsrv@techrenew.com</a>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"><span class="toast-icon" id="toastIcon">✓</span><span id="toastMsg"></span></div>
+
+<script>
+(function(){
+  "use strict";
+
+  function safeGet(key, fallback){
+    try { var v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
+    catch (e) { return fallback; }
+  }
+  function safeSet(key, val){
+    try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+    catch (e) { return false; }
+  }
+
+  function showToast(msg, icon){
+    var t = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = msg;
+    document.getElementById("toastIcon").textContent = icon || "✓";
+    t.classList.add("show");
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(function(){ t.classList.remove("show"); }, 2900);
+  }
+
+  window.submitContactMessage = function(){
+    var errEl = document.getElementById("contactError");
+    errEl.textContent = "";
+    var name = document.getElementById("cName").value.trim();
+    var email = document.getElementById("cEmail").value.trim();
+    var message = document.getElementById("cMessage").value.trim();
+
+    if (!name || !email || !message) { errEl.textContent = "Fill in your name, email and message."; return; }
+    if (email.indexOf("@") === -1) { errEl.textContent = "Enter a valid email address."; return; }
+
+    var messages = safeGet("tr_contact_messages", []);
+    messages.unshift({ name: name, email: email, message: message, submittedAt: Date.now() });
+    safeSet("tr_contact_messages", messages);
+
+    var log = safeGet("tr_email_log", []);
+    log.unshift({ text: "Contact form message from " + name, meta: email, at: Date.now() });
+    safeSet("tr_email_log", log);
+
+    document.getElementById("cName").value = "";
+    document.getElementById("cEmail").value = "";
+    document.getElementById("cMessage").value = "";
+    showToast("Message sent — we'll get back to you soon.", "✉️");
+  };
+
+})();
+</script>
+</body>
+</html>

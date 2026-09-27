@@ -4,25 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>techrenew — Used Computers, Laptops &amp; Servers | HP, Dell, Lenovo</title>
-<meta name="description" content="Wholesale and retail deals on used HP, Dell and Lenovo desktops, laptops and servers, plus server memory (RAM) and power supplies. Make an offer on new and used tech hardware — great prices, fast shipping.">
+<meta name="description" content="Wholesale and retail deals on used HP, Dell and Lenovo desktops, laptops and servers, plus server memory (RAM) and power supplies. Make an offer on used tech hardware — great prices, fast shipping.">
 <meta name="keywords" content="wholesale computers, wholesale laptops, wholesale used electronics, used computer, used laptop, used desktop, used server, HP, Dell, Lenovo, HP laptop, Dell laptop, Lenovo laptop, HP desktop, Dell desktop, used server hardware, server memory, computer RAM, DDR4 RAM, RDIMM, power supply, PSU, UPS battery backup, enterprise IT hardware, IT asset disposition, corporate computer liquidation, bulk computer lots, cheap used laptop, cheap used server, make an offer computers, buy used tech hardware, computer parts online">
-<meta property="og:title" content="techrenew — Send your price on new and used tech hardware">
-<meta property="og:description" content="Wholesale and retail new and used computers, parts and accessories. Pick a lot, name your offer, and we'll get back to you.">
-<meta property="og:image" content="https://helloamericancan-ship-it.github.io/techrenew_auction/og-image.png">
+<meta property="og:title" content="techrenew — Name your price on used tech hardware">
+<meta property="og:description" content="Wholesale and retail used computers, parts and accessories. Pick a lot, name your offer, and we'll get back to you.">
+<meta property="og:image" content="https://satomican.github.io/techrenew_auction/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://helloamericancan-ship-it.github.io/techrenew_auction/">
+<meta property="og:url" content="https://satomican.github.io/techrenew_auction/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="techrenew">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://helloamericancan-ship-it.github.io/techrenew_auction/og-image.png">
+<meta name="twitter:image" content="https://satomican.github.io/techrenew_auction/og-image.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23FFFFFF' stroke='%23D8DBDE' stroke-width='1'/%3E%3Cpath d='M9 6v12l9-6z' fill='%237CB342'/%3E%3C/svg%3E">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "techrenew",
-  "description": "Wholesale and retail new and used computers, parts and accessories — desktops, laptops, servers, memory and power hardware.",
+  "description": "Wholesale and retail used computers, parts and accessories — desktops, laptops, servers, memory and power hardware.",
   "slogan": "Great prices, fast shipping"
 }
 </script>
@@ -119,9 +119,9 @@
   }
   .brand-mark svg { width: 19px; height: 19px; color: var(--brand-green); }
   .brand-name { font-size: 28px; letter-spacing: 0.01em; font-weight: 700; }
-  .brand-name .b-tech { color: var(--brand-orange); }
-  .brand-name .b-renew { color: var(--brand-green); }
-  .brand-name .b-arrow { color: var(--brand-green); font-size: 0.6em; padding: 0 1px; }
+  .b-tech { color: var(--brand-orange); }
+  .b-renew { color: var(--brand-green); }
+  .b-arrow { color: var(--text-muted); font-size: 0.45em; vertical-align: middle; padding: 0 2px; }
   .brand-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 0.02em; margin-top: -1px; }
 
   .header-actions { display: flex; align-items: center; gap: 10px; flex: none; }
@@ -151,6 +151,7 @@
   /* ---------- Hero ---------- */
   .hero { padding: 36px 0 28px; border-bottom: 1px solid var(--border); }
   .hero-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; align-items: end; }
+  .hero-grid > * { min-width: 0; }
   .hero h1 { font-size: clamp(34px, 6vw, 54px); max-width: 12ch; }
   .hero p.lede { color: var(--text-muted); font-size: 16px; max-width: 46ch; margin-top: 14px; line-height: 1.5; }
   .hero-cta { display: flex; gap: 10px; margin-top: 20px; }
@@ -164,12 +165,19 @@
   .stat-label { color: var(--text-muted); font-size: 13px; }
   .stat-value { font-family: "IBM Plex Mono"; font-size: 13px; font-weight: 500; }
 
-  @media (max-width: 760px) {
+  @media (max-width: 880px) {
     .hero-grid { grid-template-columns: 1fr; }
   }
 
   /* ---------- Listings ---------- */
-  section.listings { padding: 34px 0 60px; }
+  section.grading { padding-top: 26px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+  .grading-title { font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; font-family: "Inter"; }
+  .grading-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+  .grading-item { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .grading-item .badge { flex: none; }
+  .grading-item p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+
+  section.listings { padding-top: 34px; padding-bottom: 60px; }
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
   .section-head h2 { font-size: 26px; }
   .section-head .count { color: var(--text-muted); font-size: 13px; font-family: "IBM Plex Mono"; }
@@ -309,6 +317,16 @@
   footer.site .wrap { display: flex; flex-direction: column; gap: 6px; }
   footer.site .f-name { font-size: 15px; font-weight: 600; }
   footer.site p { color: var(--text-muted); font-size: 13px; margin: 0; max-width: 50ch; line-height: 1.5; }
+  footer.site .footer-links { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; }
+  footer.site .footer-links a { color: var(--text-muted); font-size: 13px; text-decoration: none; }
+  footer.site .footer-links a:hover { color: var(--text); text-decoration: underline; }
+
+  section.info { padding: 40px 0 50px; border-top: 1px solid var(--border); }
+  section.info h2 { font-size: 24px; margin-bottom: 14px; }
+  section.info p { color: var(--text-muted); line-height: 1.7; margin-bottom: 12px; max-width: 620px; }
+  .contact-email { color: var(--brand-orange); font-weight: 600; text-decoration: none; }
+  .contact-email:hover { text-decoration: underline; }
+  .contact-form { max-width: 440px; margin-top: 18px; }
 </style>
 </head>
 <body>
@@ -360,8 +378,8 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <h1>Send your price on new and used tech hardware.</h1>
-        <p class="lede">New and used computers, parts and accessories. Pick a lot, name your offer, and we'll get back to you — no bidding wars, no reserve games.</p>
+        <h1>Name your price on used tech hardware.</h1>
+        <p class="lede">Used computers, parts and accessories. Pick a lot, name your offer, and we'll get back to you — no bidding wars, no reserve games.</p>
         <div class="hero-cta">
           <button class="btn btn-accent" onclick="document.getElementById('listings').scrollIntoView({behavior:'smooth'})">Browse open lots</button>
           <button class="btn" id="heroCreateBtn" onclick="openAuth('signup')">Create account</button>
@@ -370,8 +388,26 @@
       <div class="stat-plate">
         <div class="stat-row"><span class="stat-label">Lots open for offers</span><span class="stat-value" id="statOpen">—</span></div>
         <div class="stat-row"><span class="stat-label">Categories</span><span class="stat-value">5</span></div>
-        <div class="stat-row"><span class="stat-label">Condition</span><span class="stat-value">New &amp; used</span></div>
+        <div class="stat-row"><span class="stat-label">Condition</span><span class="stat-value">Used &amp; tested</span></div>
         <div class="stat-row"><span class="stat-label">Typical response time</span><span class="stat-value">1–2 business days</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grading wrap">
+    <h2 class="grading-title">Condition grades</h2>
+    <div class="grading-grid">
+      <div class="grading-item">
+        <span class="badge badge-good">Grade A</span>
+        <p>Like new — minimal to no visible wear. Fully tested and working.</p>
+      </div>
+      <div class="grading-item">
+        <span class="badge badge-warn">Grade B</span>
+        <p>Light wear — visible scratches or scuffs from normal use. Fully tested and working.</p>
+      </div>
+      <div class="grading-item">
+        <span class="badge badge-bad">Grade C</span>
+        <p>Functional — heavier cosmetic wear, or missing a minor accessory (e.g. a keycap or charger). Fully tested and working.</p>
       </div>
     </div>
   </section>
@@ -388,7 +424,12 @@
 <footer class="site">
   <div class="wrap">
     <span class="f-name"><span class="b-tech">tech</span><span class="b-arrow">&#9654;</span><span class="b-renew">renew</span></span>
-    <p>New and used desktops, laptops, servers, memory and power hardware. This page is a working prototype: accounts and offers below are stored only in this browser, for demonstration.</p>
+    <p>Used desktops, laptops, servers, memory and power hardware, sold wholesale. This page is a working prototype: accounts and offers below are stored only in this browser, for demonstration.</p>
+    <div class="footer-links">
+      <a href="about.html">About us</a>
+      <a href="contact.html">Contact us</a>
+      <a href="mailto:custsrv@techrenew.com">custsrv@techrenew.com</a>
+    </div>
   </div>
 </footer>
 
@@ -445,10 +486,9 @@
       <span class="badge" id="detGrade"></span>
     </div>
     <div class="card-spec" id="detSpec" style="font-size:13.5px;margin-bottom:14px;"></div>
-    <div class="price-row" style="margin-bottom:6px;">
+    <div class="price-row" style="margin-bottom:16px;">
       <div><div class="price" id="detPrice" style="font-size:24px;"></div><div class="price-label">asking price</div></div>
     </div>
-    <div class="closes" id="detCloses" style="margin-bottom:16px;"></div>
     <button class="btn btn-block" id="detInventoryBtn" style="display:none;margin-bottom:10px;">Download item list (.xlsx)</button>
     <button class="btn btn-accent btn-block" id="detOfferBtn">Make an offer</button>
   </div>
@@ -578,16 +618,6 @@
     ITEMS = DEFAULT_ITEMS;
     safeSet("tr_listings", ITEMS);
   }
-
-  var deadlines = safeGet("tr_deadlines", {});
-  var deadlinesChanged = false;
-  ITEMS.forEach(function(it){
-    if (!deadlines[it.id]) {
-      deadlines[it.id] = Date.now() + (it.hours || 24) * 3600 * 1000;
-      deadlinesChanged = true;
-    }
-  });
-  if (deadlinesChanged) safeSet("tr_deadlines", deadlines);
 
   window.addEventListener("storage", function(e){
     if (e.key === "tr_listings") {
@@ -721,17 +751,6 @@
 
   /* ---------- Render: grid ---------- */
   var grid = document.getElementById("grid");
-  function fmtCountdown(ms){
-    if (ms <= 0) return "Closed";
-    var h = Math.floor(ms / 3600000);
-    var m = Math.floor((ms % 3600000) / 60000);
-    if (h >= 24) {
-      var d = Math.floor(h / 24), rh = h % 24;
-      return "Closes in " + d + "d " + rh + "h";
-    }
-    return "Closes in " + h + "h " + m + "m";
-  }
-
   var photoIdx = {};
 
   function renderGrid(){
@@ -741,7 +760,6 @@
     list.forEach(function(it){
       var card = document.createElement("div");
       card.className = "card";
-      var remain = deadlines[it.id] - Date.now();
       var photos = it.photos && it.photos.length ? it.photos : (it.photo ? [it.photo] : []);
       var idx = photoIdx[it.id] || 0;
       var mediaHtml = photos.length
@@ -758,7 +776,6 @@
         '<div class="card-spec">' + it.spec + '</div>' +
         '<div class="card-bottom">' +
           '<div class="price-row"><div><div class="price">$' + it.asking + '</div><div class="price-label">asking price</div></div></div>' +
-          '<div class="closes" data-deadline-id="' + it.id + '">' + fmtCountdown(remain) + '</div>' +
           '<button class="btn btn-accent btn-block" data-offer-id="' + it.id + '">Make an offer</button>' +
         '</div>';
       grid.appendChild(card);
@@ -782,13 +799,6 @@
     });
   }
   renderGrid();
-
-  setInterval(function(){
-    Array.prototype.forEach.call(document.querySelectorAll("[data-deadline-id]"), function(el){
-      var id = el.getAttribute("data-deadline-id");
-      el.textContent = fmtCountdown(deadlines[id] - Date.now());
-    });
-  }, 60000);
 
   document.getElementById("statOpen").textContent = ITEMS.length;
 
@@ -953,7 +963,6 @@
     document.getElementById("detGrade").className = "badge " + GRADE_CLASS[item.grade];
     document.getElementById("detSpec").textContent = item.spec;
     document.getElementById("detPrice").textContent = "$" + item.asking;
-    document.getElementById("detCloses").textContent = fmtCountdown(deadlines[item.id] - Date.now());
     document.getElementById("detOfferBtn").onclick = function(){
       closeModal("detailsOverlay");
       openOfferModal(item.id);
