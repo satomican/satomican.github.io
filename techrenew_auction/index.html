@@ -785,8 +785,15 @@
   /* ---------- Modal plumbing ---------- */
   function openModal(id){ document.getElementById(id).classList.add("open"); }
   window.closeModal = function(id){ document.getElementById(id).classList.remove("open"); };
+  // Close on a backdrop click only when the press also started on the backdrop —
+  // otherwise dragging out of an input (e.g. selecting a typed password) closes the modal.
   Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(ov){
-    ov.addEventListener("click", function(e){ if (e.target === ov) ov.classList.remove("open"); });
+    var pressedOnBackdrop = false;
+    ov.addEventListener("pointerdown", function(e){ pressedOnBackdrop = (e.target === ov); });
+    ov.addEventListener("click", function(e){
+      if (e.target === ov && pressedOnBackdrop) ov.classList.remove("open");
+      pressedOnBackdrop = false;
+    });
   });
 
   function showToast(msg, icon){
