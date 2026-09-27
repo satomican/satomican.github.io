@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://satomican.github.io/caliblu-site/sitemap.xml
