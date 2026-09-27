@@ -116,9 +116,10 @@
 <div id="gate" class="gate">
   <div class="gate-box">
     <h1 style="font-size:26px;">Admin sign in</h1>
-    <p style="color:var(--text-muted);font-size:13.5px;margin-top:8px;">This is a lightweight prototype lock. A production build needs real admin accounts and permissions.</p>
-    <input type="password" id="gatePass" placeholder="Passcode (demo: admin1234)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
-    <button class="btn btn-accent" style="width:100%;" onclick="tryGate()">Enter</button>
+    <p style="color:var(--text-muted);font-size:13.5px;margin-top:8px;">Sign in with an account that has admin access.</p>
+    <input type="email" id="gateEmail" placeholder="Email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" style="margin-bottom:0;">
+    <input type="password" id="gatePass" placeholder="Password" autocomplete="current-password" style="margin-top:8px;">
+    <button class="btn btn-accent" style="width:100%;" id="gateBtn" onclick="tryGate()">Sign in</button>
     <div id="gateError" style="color:var(--bad);font-size:12.5px;margin-top:8px;"></div>
   </div>
 </div>
@@ -127,17 +128,18 @@
 <header class="top">
   <div class="top-row">
     <span class="brand"><span class="b-tech">tech</span><span class="b-arrow">&#9654;</span><span class="b-renew">renew</span> <span style="font-size:13px;color:var(--text-muted);font-weight:500;">/ Admin</span></span>
-    <button class="btn btn-sm" onclick="signOutAdmin()">Sign out</button>
+    <span style="display:flex;align-items:center;gap:10px;">
+      <span id="adminWho" style="font-size:12px;color:var(--text-muted);"></span>
+      <button class="btn btn-sm" onclick="signOutAdmin()">Sign out</button>
+    </span>
   </div>
 </header>
 
 <div class="wrap">
-  <div id="globalBackupBanner" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;border:1px solid var(--bad);background:var(--bad-bg);color:var(--bad);font-size:13px;font-weight:500;cursor:pointer;" onclick="document.querySelector('[data-panel=panelBackup]').click()"></div>
   <div class="tabs2" id="mainTabs">
     <button class="tab2 active" data-panel="panelLots">Manage lots</button>
     <button class="tab2" data-panel="panelOffers">Offers</button>
     <button class="tab2" data-panel="panelCustomers">Customers</button>
-    <button class="tab2" data-panel="panelEmail">Email log</button>
     <button class="tab2" data-panel="panelMessages">Messages</button>
     <button class="tab2" data-panel="panelBackup">Backup</button>
   </div>
@@ -164,7 +166,7 @@
           </select>
         </div>
         <div class="field"><label>Title</label><input id="newTitle" placeholder="e.g. Dell OptiPlex 7080 Micro"></div>
-        <div class="field"><label>Lot ID (optional)</label><input id="newId" placeholder="auto-generated if blank, e.g. TR-SRV-0231"></div>
+        <div class="field"><label>Lot ID (optional)</label><input id="newId" maxlength="40" placeholder="auto-generated if blank, e.g. TR-SRV-0231"></div>
         <div class="field"><label>Asking price (USD)</label><input id="newPrice" type="number" min="1" placeholder="150"></div>
         <div class="field" style="grid-column:1/-1;"><label>Spec / description</label><textarea id="newSpec" placeholder="e.g. Core i5-10500T · 256GB SSD · 16GB RAM"></textarea></div>
         <div class="field"><label>Photos (up to 10)</label><input id="newPhoto" type="file" accept="image/*" multiple></div>
@@ -172,7 +174,7 @@
           <div class="field-hint">First row should be column headers. Customers get a "Download item list" button — the file itself isn't shown on the site.</div>
         </div>
       </div>
-      <div style="margin-top:12px;"><button class="btn btn-accent" onclick="addLot()">Add lot</button></div>
+      <div style="margin-top:12px;"><button class="btn btn-accent" id="addLotBtn" onclick="addLot()">Add lot</button></div>
     </div>
 
     <div class="tabs2" id="catFilterTabs">
@@ -200,42 +202,25 @@
     <div id="customerList"></div>
   </section>
 
-  <!-- ===== EMAIL LOG PANEL ===== -->
-  <section id="panelEmail" class="panel">
-    <div class="card2">
-      <p style="font-size:13px;color:var(--text-muted);">This is a simulation of sent emails. Real delivery needs a backend connected to an email API (e.g. Resend, SendGrid). An entry is added here every time an offer is submitted, accepted, or declined.</p>
-    </div>
-    <div id="emailLog" class="card2"></div>
-  </section>
-
   <!-- ===== CONTACT MESSAGES PANEL ===== -->
   <section id="panelMessages" class="panel">
     <div class="card2">
-      <p style="font-size:13px;color:var(--text-muted);">Messages submitted through the "Contact us" form on the customer site. Reply from your own email client — this prototype doesn't send email.</p>
+      <p style="font-size:13px;color:var(--text-muted);">Messages submitted through the "Contact us" form on the customer site. Reply from your own email client.</p>
     </div>
     <div id="messageList"></div>
   </section>
 
   <!-- ===== BACKUP PANEL ===== -->
   <section id="panelBackup" class="panel">
-    <div class="card2" id="backupWarnCard" style="display:none;border:1px solid var(--bad);background:var(--bad-bg);color:var(--bad);"></div>
     <div class="card2">
       <h3 style="font-size:18px;margin-bottom:6px;">Download a backup</h3>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Saves everything — lots, offers, customer accounts and the email log — into one file. Everything on this site lives only in this browser, so if it's ever cleared, this file is the only way to get it back.</p>
-      <div id="lastBackupLabel" style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Saves a copy of the database — categories, lots, item lists, offers, customer profiles and contact messages — into one file. Photos stay in Supabase Storage; the file keeps their links.</p>
       <button class="btn btn-accent" onclick="downloadFullBackup()">Download full backup (.json)</button>
     </div>
-    <div class="card2">
-      <h3 style="font-size:18px;margin-bottom:6px;">Restore from a backup</h3>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">This replaces everything currently on this site with what's in the backup file. Use it after clearing browser data, or to move this site's data to a new browser or computer.</p>
-      <input id="restoreFile" type="file" accept=".json">
-      <div style="margin-top:10px;"><button class="btn btn-sm btn-danger" id="restoreBtn" onclick="restoreFullBackup(this)">Restore from file</button></div>
-    </div>
-    <p class="fine">A backup is a snapshot at the moment you download it — anything added after won't be in it. Make a fresh one regularly, and especially before clearing your browser's data.</p>
+    <p class="fine">The free Supabase plan doesn't include automatic backups, so download one regularly.</p>
   </section>
 
-
-  <p class="fine">This admin page is a prototype. Data is stored only in this browser's localStorage and is not shared with other devices or users. Hosting it on the same domain as index.html (e.g. GitHub Pages) lets it share data with the customer site.</p>
+  <p class="fine">Data is stored in Supabase and shared with the customer site.</p>
 </div>
 </div>
 
@@ -243,11 +228,14 @@
 <div class="admin-toast" id="adminToast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
 <script>
 (function(){
   "use strict";
-  function safeGet(key, fallback){ try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e){ return fallback; } }
-  function safeSet(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch(e){ return false; } }
+  var sb = window.sb;
+  var BUCKET = "lot-photos";
 
   function showNotice(msg, isError){
     var t = document.getElementById("adminToast");
@@ -260,28 +248,59 @@
   }
 
   var GRADE_LABEL = { A:"Grade A · Like new", B:"Grade B · Light wear", C:"Grade C · Functional" };
-  var GRADE_CLASS = { A:"badge-good", B:"badge-warn", C:"badge-bad" };
   var CAT_LABEL = { desktop:"Desktop", laptop:"Laptop", server:"Server", memory:"Memory", power:"Power" };
-  var BACKUP_KEYS = ["tr_listings", "tr_accounts", "tr_offers", "tr_email_log", "tr_seeded_defaults", "tr_contact_messages"];
 
-  /* ---- gate ---- */
-  window.tryGate = function(){
-    var v = document.getElementById("gatePass").value.trim();
-    if (v === "admin1234") {
-      document.getElementById("gate").style.display = "none";
-      document.getElementById("app").style.display = "block";
-      boot();
-    } else {
-      document.getElementById("gateError").textContent = "Incorrect passcode.";
-    }
-  };
-  document.getElementById("gatePass").addEventListener("keydown", function(e){
-    if (e.key === "Enter") tryGate();
-  });
-  window.signOutAdmin = function(){
+  function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  var escapeAttr = escapeHtml;
+
+  /* ---- sign in: Supabase Auth + profiles.is_admin ---- */
+  function showGate(msg){
     document.getElementById("app").style.display = "none";
     document.getElementById("gate").style.display = "flex";
+    document.getElementById("gateError").textContent = msg || "";
+  }
+  function showApp(email){
+    document.getElementById("adminWho").textContent = email || "";
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    boot();
+  }
+
+  async function checkAdmin(){
+    var s = (await sb.auth.getSession()).data.session;
+    if (!s) { showGate(); return; }
+    // is_admin() is defined in 01_schema_v2.sql and reads the signed-in user's profile.
+    var r = await sb.rpc("is_admin");
+    if (r.error) { showGate("Couldn't check admin access — please try again."); return; }
+    if (r.data === true) { showApp(s.user.email); return; }
+    await sb.auth.signOut();
+    showGate("This account doesn't have admin access.");
+  }
+
+  window.tryGate = async function(){
+    var btn = document.getElementById("gateBtn");
+    var email = document.getElementById("gateEmail").value.trim().toLowerCase();
+    var pass = document.getElementById("gatePass").value;
+    document.getElementById("gateError").textContent = "";
+    if (!email || !pass) { document.getElementById("gateError").textContent = "Enter your email and password."; return; }
+    btn.disabled = true;
+    var r = await sb.auth.signInWithPassword({ email: email, password: pass });
+    btn.disabled = false;
+    if (r.error) {
+      document.getElementById("gateError").textContent = /confirm/i.test(r.error.message || "")
+        ? "This email hasn't been confirmed yet."
+        : "Email or password is incorrect.";
+      return;
+    }
     document.getElementById("gatePass").value = "";
+    await checkAdmin();
+  };
+  ["gateEmail", "gatePass"].forEach(function(id){
+    document.getElementById(id).addEventListener("keydown", function(e){ if (e.key === "Enter") tryGate(); });
+  });
+  window.signOutAdmin = async function(){
+    await sb.auth.signOut();
+    showGate();
   };
 
   /* ---- tabs ---- */
@@ -289,11 +308,10 @@
     var btn = e.target.closest(".tab2"); if (!btn) return;
     Array.prototype.forEach.call(document.querySelectorAll("#mainTabs .tab2"), function(b){ b.classList.toggle("active", b === btn); });
     Array.prototype.forEach.call(document.querySelectorAll(".panel"), function(p){ p.classList.toggle("active", p.id === btn.dataset.panel); });
+    if (btn.dataset.panel === "panelLots") renderLots();
     if (btn.dataset.panel === "panelOffers") renderOffers();
-    if (btn.dataset.panel === "panelEmail") renderEmailLog();
     if (btn.dataset.panel === "panelCustomers") renderCustomers();
     if (btn.dataset.panel === "panelMessages") renderMessages();
-    if (btn.dataset.panel === "panelBackup") renderBackupPanel();
   });
 
   var activeCat = "all";
@@ -301,96 +319,68 @@
     var btn = e.target.closest(".tab2"); if (!btn) return;
     Array.prototype.forEach.call(document.querySelectorAll("#catFilterTabs .tab2"), function(b){ b.classList.toggle("active", b === btn); });
     activeCat = btn.dataset.cat;
-    renderLots();
+    drawLots();
   });
 
   function boot(){
     renderLots();
-    renderOffers();
-    renderEmailLog();
-    renderCustomers();
-    renderMessages();
-    renderBackupPanel();
   }
 
   /* ---- lots ---- */
-  var DEFAULT_ITEMS = [
-    { id:"TR-DSK-0142", cat:"desktop", icon:"ic-desktop", title:"HP EliteDesk 705 G5 SFF",
-      spec:"AMD Athlon 300GE · 512GB SSD · 32GB RAM · Win 11 Pro", grade:"A", asking:130, hours:30 },
-    { id:"TR-DSK-0138", cat:"desktop", icon:"ic-desktop", title:"Dell OptiPlex 7080 Micro",
-      spec:"Core i5-10500T · 256GB SSD · 16GB RAM · No OS", grade:"B", asking:145, hours:18 },
-    { id:"TR-DSK-0151", cat:"desktop", icon:"ic-desktop", title:"HP ProDesk 600 G5 SFF",
-      spec:"Core i5-9500 · 512GB SSD · 16GB RAM · No OS", grade:"B", asking:120, hours:44 },
-    { id:"TR-LAP-0873", cat:"laptop", icon:"ic-laptop", title:"Dell Latitude 5320",
-      spec:"Core i5-1145G7 · 512GB SSD · 16GB RAM · 13.3\" FHD · missing keycap", grade:"B", asking:155, hours:9 },
-    { id:"TR-LAP-0869", cat:"laptop", icon:"ic-laptop", title:"Dell Precision 5520",
-      spec:"Core i7-7820HQ · 256GB SSD · 16GB RAM · no OS / no charger", grade:"C", asking:200, hours:26 },
-    { id:"TR-LAP-0855", cat:"laptop", icon:"ic-laptop", title:"Lenovo ThinkPad E14",
-      spec:"Core i7-10510U · 256GB SSD · 8GB RAM · no OS", grade:"B", asking:175, hours:52 },
-    { id:"TR-SRV-0231", cat:"server", icon:"ic-server", title:"Dell PowerEdge R720 2U",
-      spec:"2x Xeon E5-2670 · 128GB RAM · 8x 600GB SAS · rail kit incl.", grade:"B", asking:520, hours:37 },
-    { id:"TR-SRV-0228", cat:"server", icon:"ic-server", title:"HP ProLiant DL380 G9 2U",
-      spec:"2x Xeon E5-2680v4 · 256GB RAM · 8x SFF bays", grade:"A", asking:690, hours:14 },
-    { id:"TR-SRV-0219", cat:"server", icon:"ic-server", title:"Dell PowerEdge R730xd",
-      spec:"2x Xeon E5-2690v4 · 192GB RAM · 12x 4TB storage bays", grade:"B", asking:810, hours:60 },
-    { id:"TR-MEM-1042", cat:"memory", icon:"ic-memory", title:"Samsung 32GB PC4-2400T RDIMM",
-      spec:"Server memory · 2Rx4 · lot of 4 (128GB total)", grade:"A", asking:225, hours:22 },
-    { id:"TR-MEM-1039", cat:"memory", icon:"ic-memory", title:"SK Hynix 32GB PC4-2400T RDIMM",
-      spec:"Server memory · single module", grade:"A", asking:60, hours:11 },
-    { id:"TR-MEM-1024", cat:"memory", icon:"ic-memory", title:"Micron 16GB PC3L-10600R RDIMM",
-      spec:"Server memory · lot of 10", grade:"B", asking:280, hours:41 },
-    { id:"TR-PWR-0311", cat:"power", icon:"ic-power", title:"HP ProLiant 800W Hot-Swap PSU",
-      spec:"Hot-swap server power supply · tested under load", grade:"A", asking:45, hours:20 },
-    { id:"TR-PWR-0307", cat:"power", icon:"ic-power", title:"Dell PowerEdge 1100W Redundant PSU",
-      spec:"Redundant power supply module", grade:"B", asking:38, hours:33 },
-    { id:"TR-PWR-0298", cat:"power", icon:"ic-power", title:"APC Smart-UPS 1500VA Rack Mount",
-      spec:"2U rack UPS · new batteries installed", grade:"A", asking:210, hours:48 }
-  ];
+  var LOTS = [];
+  var lotsLoaded = false;
 
-  function getLots(){
-    var list = safeGet("tr_listings", []) || [];
-    var seeded = safeGet("tr_seeded_defaults", false);
-    if (!seeded) {
-      var existingIds = {};
-      list.forEach(function(it){ existingIds[it.id] = true; });
-      var changed = false;
-      DEFAULT_ITEMS.forEach(function(def){
-        if (!existingIds[def.id]) { list.push(def); changed = true; }
-      });
-      if (changed) safeSet("tr_listings", list);
-      safeSet("tr_seeded_defaults", true);
-    }
-    return list;
+  async function loadLots(){
+    var r = await sb.from("lots")
+      .select("id, category, title, spec, grade, asking_price, status, created_at, lot_images(id, url, sort_order), lot_inventories(file_name, data)")
+      .order("created_at", { ascending: false });
+    if (r.error) { showNotice("Couldn't load lots: " + r.error.message, true); return false; }
+    LOTS = r.data.map(function(x){
+      var imgs = (x.lot_images || []).slice().sort(function(a, b){ return a.sort_order - b.sort_order; });
+      var inv = Array.isArray(x.lot_inventories) ? x.lot_inventories[0] : x.lot_inventories;
+      return {
+        id: x.id, cat: x.category, title: x.title, spec: x.spec || "", grade: x.grade,
+        asking: x.asking_price, status: x.status, images: imgs,
+        inventory: inv ? { fileName: inv.file_name, items: Math.max(0, (inv.data || []).length - 1) } : null
+      };
+    });
+    lotsLoaded = true;
+    return true;
   }
-  function setLots(list){
-    var ok = safeSet("tr_listings", list);
-    if (!ok) showNotice("Storage limit reached — this browser's local storage is full. Try removing a photo or using fewer/smaller photos on this lot.", true);
-    return ok;
+
+  async function renderLots(){
+    if (!lotsLoaded) document.getElementById("lotList").innerHTML = '<div class="empty">Loading…</div>';
+    if (await loadLots()) drawLots();
   }
+
+  function findLot(id){ return LOTS.filter(function(it){ return it.id === id; })[0]; }
 
   function genId(cat){
     var prefix = { desktop:"TR-DSK", laptop:"TR-LAP", server:"TR-SRV", memory:"TR-MEM", power:"TR-PWR" }[cat] || "TR-GEN";
     return prefix + "-" + Math.floor(1000 + Math.random()*9000);
   }
 
+  // Resize to at most maxDim px and re-encode as JPEG. Resolves to a Blob, or null if the file can't be used.
   function compressImage(file, maxDim, quality){
     return new Promise(function(resolve){
+      function fallback(){
+        var ok = /^image\/(jpeg|png|webp)$/.test(file.type) && file.size <= 5 * 1024 * 1024;
+        resolve(ok ? file : null);
+      }
       var reader = new FileReader();
       reader.onload = function(e){
         var img = new Image();
         img.onload = function(){
           var w = img.width, h = img.height;
           var scale = Math.min(1, maxDim / Math.max(w, h));
-          var cw = Math.max(1, Math.round(w * scale));
-          var ch = Math.max(1, Math.round(h * scale));
           var canvas = document.createElement("canvas");
-          canvas.width = cw; canvas.height = ch;
-          var ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, cw, ch);
-          try { resolve(canvas.toDataURL("image/jpeg", quality)); }
-          catch (err) { resolve(e.target.result); }
+          canvas.width = Math.max(1, Math.round(w * scale));
+          canvas.height = Math.max(1, Math.round(h * scale));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          try { canvas.toBlob(function(b){ if (b) resolve(b); else fallback(); }, "image/jpeg", quality); }
+          catch (err) { fallback(); }
         };
-        img.onerror = function(){ resolve(e.target.result); };
+        img.onerror = fallback;
         img.src = e.target.result;
       };
       reader.onerror = function(){ resolve(null); };
@@ -398,11 +388,31 @@
     });
   }
 
-  function readFilesAsDataURLs(fileList, max){
+  function storagePathFromUrl(url){
+    var marker = "/" + BUCKET + "/";
+    var i = String(url).indexOf(marker);
+    return i === -1 ? null : decodeURIComponent(url.slice(i + marker.length));
+  }
+
+  // Upload photos to Supabase Storage and record them in lot_images.
+  async function uploadPhotos(lotId, fileList, max, startOrder){
     var files = Array.prototype.slice.call(fileList).slice(0, max);
-    return Promise.all(files.map(function(file){
-      return compressImage(file, 900, 0.72);
-    })).then(function(results){ return results.filter(Boolean); });
+    var added = 0, failed = 0;
+    var folder = lotId.replace(/[^A-Za-z0-9_-]/g, "_");
+    for (var i = 0; i < files.length; i++) {
+      var blob = await compressImage(files[i], 1600, 0.82);
+      if (!blob) { failed++; continue; }
+      var ext = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
+      var path = folder + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
+      var up = await sb.storage.from(BUCKET).upload(path, blob, { contentType: blob.type || "image/jpeg" });
+      if (up.error) { failed++; continue; }
+      var url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+      var ins = await sb.from("lot_images").insert({ lot_id: lotId, url: url, sort_order: startOrder + added });
+      if (ins.error) { await sb.storage.from(BUCKET).remove([path]); failed++; continue; }
+      added++;
+    }
+    if (failed) showNotice(failed + " photo(s) couldn't be uploaded (JPEG/PNG/WebP up to 5 MB).", true);
+    return added;
   }
 
   function parseInventoryFile(file){
@@ -416,7 +426,7 @@
           var data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
           if (!data.length) { reject(new Error("That file looks empty.")); return; }
           if (data.length > 501) { data = data.slice(0, 501); showNotice("Only the first 500 rows were kept."); }
-          resolve({ fileName: file.name, data: data });
+          resolve({ fileName: file.name.slice(0, 255), data: data });
         } catch (err) { reject(new Error("Couldn't read that file — is it a valid Excel/CSV file?")); }
       };
       reader.onerror = function(){ reject(new Error("Couldn't read that file.")); };
@@ -424,32 +434,52 @@
     });
   }
 
-  window.addLot = function(){
+  async function saveInventory(lotId, inventory){
+    var r = await sb.from("lot_inventories").upsert({ lot_id: lotId, file_name: inventory.fileName, data: inventory.data });
+    if (r.error) { showNotice("Couldn't save the item list: " + r.error.message, true); return false; }
+    return true;
+  }
+
+  var addBusy = false;
+  window.addLot = async function(){
+    if (addBusy) return;
     var cat = document.getElementById("newCat").value;
     var grade = document.getElementById("newGrade").value;
     var title = document.getElementById("newTitle").value.trim();
     var customId = document.getElementById("newId").value.trim();
-    var price = parseFloat(document.getElementById("newPrice").value);
+    var price = Number(document.getElementById("newPrice").value);
     var spec = document.getElementById("newSpec").value.trim();
     var fileInput = document.getElementById("newPhoto");
     var invInput = document.getElementById("newInventory");
 
     if (!title || !price) { showNotice("Enter a title and an asking price.", true); return; }
+    if (!Number.isInteger(price) || price < 0) { showNotice("Asking price must be a whole number of dollars.", true); return; }
+    if (title.length > 200) { showNotice("Title is too long (200 characters max).", true); return; }
+    if (spec.length > 1000) { showNotice("Spec is too long (1,000 characters max).", true); return; }
+    if (customId && !/^[A-Za-z0-9_-]{1,40}$/.test(customId)) { showNotice("Lot ID can only use letters, numbers, - and _.", true); return; }
 
-    var existingList = getLots();
-    if (customId && existingList.some(function(it){ return it.id === customId; })) {
-      showNotice("Lot ID \"" + customId + "\" is already in use — pick a different one or leave it blank to auto-generate.", true);
-      return;
+    var inventory = null;
+    if (invInput.files && invInput.files.length) {
+      try { inventory = await parseInventoryFile(invInput.files[0]); }
+      catch (err) { showNotice(err.message, true); return; }
     }
 
-    function finish(photos, inventory){
-      var list = getLots();
+    addBusy = true;
+    var btn = document.getElementById("addLotBtn");
+    btn.disabled = true; btn.textContent = "Adding…";
+    try {
       var id = customId || genId(cat);
-      var lot = { id: id, cat: cat, icon: "ic-" + cat, title: title, spec: spec, grade: grade, asking: price, photos: photos };
-      if (inventory) lot.inventory = inventory;
-      list.push(lot);
-      setLots(list);
-      notifySubscribers(title, price, CAT_LABEL[cat]);
+      var r = await sb.from("lots").insert({ id: id, category: cat, title: title, spec: spec || null, grade: grade, asking_price: price });
+      if (r.error) {
+        if (r.error.code === "23505") showNotice("Lot ID \"" + id + "\" is already in use — pick a different one or leave it blank to auto-generate.", true);
+        else showNotice("Couldn't add the lot: " + r.error.message, true);
+        return;
+      }
+      if (inventory) await saveInventory(id, inventory);
+      if (fileInput.files && fileInput.files.length) {
+        if (fileInput.files.length > 10) showNotice("Only the first 10 photos will be used.");
+        await uploadPhotos(id, fileInput.files, 10, 0);
+      }
       showNotice("Lot added: " + title);
       document.getElementById("newTitle").value = "";
       document.getElementById("newId").value = "";
@@ -458,121 +488,122 @@
       fileInput.value = "";
       invInput.value = "";
       renderLots();
-    }
-
-    function withPhotos(){
-      if (fileInput.files && fileInput.files.length) {
-        if (fileInput.files.length > 10) showNotice("Only the first 10 photos will be used.");
-        return readFilesAsDataURLs(fileInput.files, 10);
-      }
-      return Promise.resolve([]);
-    }
-
-    if (invInput.files && invInput.files.length) {
-      parseInventoryFile(invInput.files[0]).then(function(inventory){
-        withPhotos().then(function(photos){ finish(photos, inventory); });
-      }).catch(function(err){ showNotice(err.message, true); });
-    } else {
-      withPhotos().then(function(photos){ finish(photos, null); });
+    } finally {
+      addBusy = false;
+      btn.disabled = false; btn.textContent = "Add lot";
     }
   };
 
-  window.deleteLot = function(id, btn){
+  window.deleteLot = async function(id, btn){
     if (btn && btn.dataset.armed !== "1") {
       btn.dataset.armed = "1";
       btn.dataset.originalText = btn.textContent;
-      btn.textContent = "Confirm?";
+      btn.textContent = "Confirm? (deletes its offers too)";
       btn._armTimer = setTimeout(function(){
         btn.dataset.armed = "0";
         btn.textContent = btn.dataset.originalText;
       }, 3000);
       return;
     }
-    setLots(getLots().filter(function(it){ return it.id !== id; }));
+    if (btn) { clearTimeout(btn._armTimer); btn.disabled = true; }
+    var lot = findLot(id);
+    var paths = lot ? lot.images.map(function(im){ return storagePathFromUrl(im.url); }).filter(Boolean) : [];
+    var r = await sb.from("lots").delete().eq("id", id);  // images, item list and offers are removed by cascade
+    if (r.error) { showNotice("Couldn't delete: " + r.error.message, true); if (btn) btn.disabled = false; return; }
+    if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+    showNotice("Lot deleted.");
     renderLots();
   };
 
-  window.saveLot = function(id){
+  window.saveLot = async function(id){
     var row = document.querySelector('[data-lot-row="' + id + '"]');
-    var list = getLots();
-    var idx = list.findIndex(function(it){ return it.id === id; });
-    if (idx === -1) return;
-    list[idx].title = row.querySelector('[data-f="title"]').value.trim();
-    list[idx].spec = row.querySelector('[data-f="spec"]').value.trim();
-    list[idx].grade = row.querySelector('[data-f="grade"]').value;
-    list[idx].asking = parseFloat(row.querySelector('[data-f="asking"]').value) || list[idx].asking;
-    setLots(list);
+    var lot = findLot(id);
+    if (!row || !lot) return;
+    var title = row.querySelector('[data-f="title"]').value.trim();
+    var spec = row.querySelector('[data-f="spec"]').value.trim();
+    var asking = Number(row.querySelector('[data-f="asking"]').value);
+    if (!title) { showNotice("Title can't be empty.", true); return; }
+    if (!Number.isInteger(asking) || asking < 0) { showNotice("Asking price must be a whole number of dollars.", true); return; }
+    var r = await sb.from("lots").update({
+      title: title,
+      spec: spec || null,
+      grade: row.querySelector('[data-f="grade"]').value,
+      asking_price: asking,
+      status: row.querySelector('[data-f="status"]').value
+    }).eq("id", id);
+    if (r.error) { showNotice("Couldn't save: " + r.error.message, true); return; }
+    showNotice("Saved.");
     renderLots();
   };
 
-  window.addPhotos = function(id, fileList){
-    var list = getLots();
-    var idx = list.findIndex(function(it){ return it.id === id; });
-    if (idx === -1) return;
-    var existing = list[idx].photos || [];
-    var room = 10 - existing.length;
+  window.addPhotos = async function(id, fileList){
+    var lot = findLot(id);
+    if (!lot || !fileList || !fileList.length) return;
+    var room = 10 - lot.images.length;
     if (room <= 0) { showNotice("This lot already has 10 photos — remove one first.", true); return; }
     if (fileList.length > room) showNotice("Only " + room + " more photo(s) will be added (10 max per lot).");
-    readFilesAsDataURLs(fileList, room).then(function(newPhotos){
-      list[idx].photos = existing.concat(newPhotos);
-      setLots(list);
-      renderLots();
-    });
-  };
-
-  window.removePhoto = function(id, photoIdx){
-    var list = getLots();
-    var idx = list.findIndex(function(it){ return it.id === id; });
-    if (idx === -1 || !list[idx].photos) return;
-    list[idx].photos.splice(photoIdx, 1);
-    setLots(list);
+    var nextOrder = lot.images.reduce(function(m, im){ return Math.max(m, im.sort_order + 1); }, 0);
+    showNotice("Uploading…");
+    await uploadPhotos(id, fileList, room, nextOrder);
     renderLots();
   };
 
-  window.setInventory = function(id, fileList){
+  window.removePhoto = async function(id, imageId){
+    var lot = findLot(id);
+    if (!lot) return;
+    var im = lot.images.filter(function(x){ return x.id === imageId; })[0];
+    if (!im) return;
+    var r = await sb.from("lot_images").delete().eq("id", imageId);
+    if (r.error) { showNotice("Couldn't remove the photo: " + r.error.message, true); return; }
+    var path = storagePathFromUrl(im.url);
+    if (path) await sb.storage.from(BUCKET).remove([path]);
+    renderLots();
+  };
+
+  window.setInventory = async function(id, fileList){
     if (!fileList || !fileList.length) return;
-    var list = getLots();
-    var idx = list.findIndex(function(it){ return it.id === id; });
-    if (idx === -1) return;
-    parseInventoryFile(fileList[0]).then(function(inventory){
-      list[idx].inventory = inventory;
-      setLots(list);
+    var inventory;
+    try { inventory = await parseInventoryFile(fileList[0]); }
+    catch (err) { showNotice(err.message, true); return; }
+    if (await saveInventory(id, inventory)) {
       showNotice("Item list saved: " + (inventory.data.length - 1) + " item(s).");
       renderLots();
-    }).catch(function(err){ showNotice(err.message, true); });
+    }
   };
 
-  window.removeInventory = function(id){
-    var list = getLots();
-    var idx = list.findIndex(function(it){ return it.id === id; });
-    if (idx === -1 || !list[idx].inventory) return;
-    delete list[idx].inventory;
-    setLots(list);
+  window.removeInventory = async function(id){
+    var r = await sb.from("lot_inventories").delete().eq("lot_id", id);
+    if (r.error) { showNotice("Couldn't remove the item list: " + r.error.message, true); return; }
     renderLots();
   };
 
-  function renderLots(){
-    var list = getLots().filter(function(it){ return activeCat === "all" || it.cat === activeCat; });
+  function drawLots(){
+    var list = LOTS.filter(function(it){ return activeCat === "all" || it.cat === activeCat; });
     var wrap = document.getElementById("lotList");
     if (!list.length) { wrap.innerHTML = '<div class="empty">No lots in this category yet.</div>'; return; }
     wrap.innerHTML = list.map(function(it){
-      var photos = it.photos || (it.photo ? [it.photo] : []);
-      var thumb = photos.length ? '<img class="thumb" src="' + photos[0] + '" alt="">' : '<div class="thumb"></div>';
-      var strip = photos.map(function(p, i){
-        return '<div class="photo-thumb-wrap"><img src="' + p + '" alt="">' +
-          '<button class="photo-remove" onclick="removePhoto(\'' + it.id + '\',' + i + ')" title="Remove">&times;</button></div>';
+      var photos = it.images;
+      var thumb = photos.length ? '<img class="thumb" src="' + escapeAttr(photos[0].url) + '" alt="">' : '<div class="thumb"></div>';
+      var strip = photos.map(function(p){
+        return '<div class="photo-thumb-wrap"><img src="' + escapeAttr(p.url) + '" alt="">' +
+          '<button class="photo-remove" onclick="removePhoto(\'' + it.id + '\',\'' + p.id + '\')" title="Remove">&times;</button></div>';
       }).join("");
       return '<div class="lot-row" data-lot-row="' + it.id + '">' +
         thumb +
         '<div style="flex:1;">' +
-          '<div class="id-tag mono">' + it.id + ' · ' + CAT_LABEL[it.cat] + '</div>' +
+          '<div class="id-tag mono">' + escapeHtml(it.id) + ' · ' + escapeHtml(CAT_LABEL[it.cat] || it.cat) +
+            (it.status === "closed" ? ' · <span style="color:var(--bad);">Closed</span>' : '') + '</div>' +
           '<div class="lot-fields">' +
-            '<div class="field" style="grid-column:1/-1;"><label>Title</label><input data-f="title" value="' + escapeAttr(it.title) + '"></div>' +
-            '<div class="field" style="grid-column:1/-1;"><label>Spec</label><textarea data-f="spec">' + escapeHtml(it.spec || "") + '</textarea></div>' +
+            '<div class="field" style="grid-column:1/-1;"><label>Title</label><input data-f="title" maxlength="200" value="' + escapeAttr(it.title) + '"></div>' +
+            '<div class="field" style="grid-column:1/-1;"><label>Spec</label><textarea data-f="spec" maxlength="1000">' + escapeHtml(it.spec) + '</textarea></div>' +
             '<div class="field"><label>Grade</label><select data-f="grade">' +
               ['A','B','C'].map(function(g){ return '<option value="' + g + '"' + (g === it.grade ? ' selected' : '') + '>' + GRADE_LABEL[g] + '</option>'; }).join("") +
             '</select></div>' +
-            '<div class="field"><label>Asking price (USD)</label><input data-f="asking" type="number" value="' + it.asking + '"></div>' +
+            '<div class="field"><label>Asking price (USD)</label><input data-f="asking" type="number" min="0" step="1" value="' + it.asking + '"></div>' +
+            '<div class="field"><label>Status</label><select data-f="status">' +
+              '<option value="open"' + (it.status === "open" ? ' selected' : '') + '>Open — accepting offers</option>' +
+              '<option value="closed"' + (it.status === "closed" ? ' selected' : '') + '>Closed — hidden from the site</option>' +
+            '</select></div>' +
             '<div class="field" style="grid-column:1/-1;">' +
               '<label>Photos (' + photos.length + '/10)</label>' +
               '<div class="photo-strip">' + strip + '</div>' +
@@ -580,8 +611,8 @@
             '</div>' +
             '<div class="field" style="grid-column:1/-1;">' +
               '<label>Item list</label>' +
-              (it.inventory && it.inventory.data ?
-                '<div class="photo-count-label">' + escapeHtml(it.inventory.fileName || "inventory") + ' — ' + (it.inventory.data.length - 1) + ' item(s)</div>' +
+              (it.inventory ?
+                '<div class="photo-count-label">' + escapeHtml(it.inventory.fileName || "inventory") + ' — ' + it.inventory.items + ' item(s)</div>' +
                 '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
                   '<input style="flex:1;min-width:160px;" type="file" accept=".xlsx,.xls,.csv" onchange="setInventory(\'' + it.id + '\', this.files)">' +
                   '<button class="btn btn-sm btn-danger" onclick="removeInventory(\'' + it.id + '\')">Remove</button>' +
@@ -598,97 +629,82 @@
     }).join("");
   }
 
-  function escapeHtml(s){ return (s||"").replace(/[&<>]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]; }); }
-  function escapeAttr(s){ return escapeHtml(s).replace(/"/g, "&quot;"); }
+  /* ---- customer emails (needs 02_admin_emails.sql) ---- */
+  async function loadEmails(){
+    var r = await sb.rpc("admin_user_emails");
+    if (r.error) return null;
+    var map = {};
+    r.data.forEach(function(x){ map[x.id] = x.email; });
+    return map;
+  }
+  var EMAIL_HINT = '<div class="card2" style="font-size:13px;color:var(--warn);">Customer emails aren\'t available yet — run <span class="mono">02_admin_emails.sql</span> in the Supabase SQL Editor.</div>';
 
   /* ---- offers ---- */
-  function getOffers(){ return safeGet("tr_offers", []); }
-  function setOffers(list){ safeSet("tr_offers", list); }
-  function addLog(text, meta){
-    var log = safeGet("tr_email_log", []);
-    log.unshift({ text: text, meta: meta, at: Date.now() });
-    safeSet("tr_email_log", log);
-  }
-
-  function notifySubscribers(lotTitle, price, categoryLabel){
-    var accounts = safeGet("tr_accounts", {});
-    var subscribers = Object.keys(accounts).filter(function(email){ return accounts[email].notifyNewLots; });
-    if (!subscribers.length) return;
-    addLog(
-      "New lot alert: " + lotTitle,
-      subscribers.length + " subscriber" + (subscribers.length === 1 ? "" : "s") + " notified · " + categoryLabel + " · $" + price
-    );
-  }
-
-  window.decideOffer = function(idx, status){
-    var list = getOffers();
-    if (!list[idx]) return;
-    list[idx].status = status;
-    setOffers(list);
-    addLog(
-      (status === "Accepted" ? "Acceptance email sent: " : "Decline email sent: ") + list[idx].itemTitle,
-      list[idx].email + " · $" + list[idx].amount
-    );
-    renderOffers();
-    renderEmailLog();
-  };
-
-  function renderOffers(){
-    var list = getOffers();
+  async function renderOffers(){
     var wrap = document.getElementById("offerList");
-    if (!list.length) { wrap.innerHTML = '<div class="empty">No offers yet.</div>'; return; }
-    wrap.innerHTML = list.map(function(o, i){
+    wrap.innerHTML = '<div class="empty">Loading…</div>';
+    var results = await Promise.all([
+      sb.from("offers").select("id, lot_id, user_id, amount, note, status, submitted_at, lots(title)").order("submitted_at", { ascending: false }),
+      loadEmails()
+    ]);
+    var r = results[0], emails = results[1];
+    if (r.error) { wrap.innerHTML = '<div class="empty">Couldn\'t load offers: ' + escapeHtml(r.error.message) + '</div>'; return; }
+    if (!r.data.length) { wrap.innerHTML = '<div class="empty">No offers yet.</div>'; return; }
+    wrap.innerHTML = (emails ? '' : EMAIL_HINT) + r.data.map(function(o){
       var cls = o.status === "Accepted" ? "badge-good" : o.status === "Declined" ? "badge-bad" : "badge-warn";
+      var who = (emails && emails[o.user_id]) || ("customer " + o.user_id.slice(0, 8));
+      var title = (o.lots && o.lots.title) || o.lot_id;
       return '<div class="offer-card">' +
-        '<div class="offer-top"><div><strong>' + escapeHtml(o.itemTitle) + '</strong><div class="offer-meta">' + escapeHtml(o.email) + '</div></div>' +
-        '<span class="badge ' + cls + '">' + o.status + '</span></div>' +
+        '<div class="offer-top"><div><strong>' + escapeHtml(title) + '</strong><div class="offer-meta">' + escapeHtml(who) + ' · ' + escapeHtml(o.lot_id) + '</div></div>' +
+        '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
         '<div class="offer-amount" style="margin-top:6px;">$' + o.amount + '</div>' +
         (o.note ? '<div class="offer-meta" style="margin-top:4px;">' + escapeHtml(o.note) + '</div>' : '') +
-        '<div class="offer-meta">' + new Date(o.submittedAt).toLocaleString("en-US") + '</div>' +
+        '<div class="offer-meta">' + new Date(o.submitted_at).toLocaleString("en-US") + '</div>' +
         (o.status === "Pending review" ?
           '<div class="offer-actions">' +
-            '<button class="btn btn-sm btn-accent" onclick="decideOffer(' + i + ',\'Accepted\')">Accept</button>' +
-            '<button class="btn btn-sm btn-danger" onclick="decideOffer(' + i + ',\'Declined\')">Decline</button>' +
+            '<button class="btn btn-sm btn-accent" onclick="decideOffer(\'' + o.id + '\',\'Accepted\')">Accept</button>' +
+            '<button class="btn btn-sm btn-danger" onclick="decideOffer(\'' + o.id + '\',\'Declined\')">Decline</button>' +
           '</div>' : '') +
       '</div>';
     }).join("");
   }
 
-  function renderEmailLog(){
-    var log = safeGet("tr_email_log", []);
-    var wrap = document.getElementById("emailLog");
-    if (!log.length) { wrap.innerHTML = '<div class="empty">No email log entries yet.</div>'; return; }
-    wrap.innerHTML = log.map(function(l){
-      return '<div class="log-row"><div>' + escapeHtml(l.text) + '</div><div class="log-meta">' + escapeHtml(l.meta || "") + ' · ' + new Date(l.at).toLocaleString("en-US") + '</div></div>';
-    }).join("");
-  }
+  window.decideOffer = async function(id, status){
+    var r = await sb.from("offers").update({ status: status }).eq("id", id);
+    if (r.error) { showNotice("Couldn't update the offer: " + r.error.message, true); return; }
+    showNotice("Offer " + status.toLowerCase() + ".");
+    renderOffers();
+  };
 
   /* ---- customers ---- */
-  function getCustomers(){
-    var accounts = safeGet("tr_accounts", {});
-    return Object.keys(accounts).map(function(email){
-      var a = accounts[email];
-      return {
-        email: email,
-        name: a.name || "",
-        address: a.address || "",
-        city: a.city || "",
-        state: a.state || "",
-        zip: a.zip || "",
-        country: a.country || "",
-        notifyNewLots: !!a.notifyNewLots
-      };
-    });
+  async function getCustomers(){
+    var results = await Promise.all([ sb.from("profiles").select("*"), loadEmails() ]);
+    var r = results[0], emails = results[1];
+    if (r.error) throw new Error(r.error.message);
+    return {
+      emailsAvailable: !!emails,
+      list: r.data.map(function(p){
+        return {
+          email: (emails && emails[p.id]) || "",
+          name: p.name || "", address: p.address || "", city: p.city || "", state: p.state || "",
+          zip: p.zip || "", country: p.country || "",
+          notifyNewLots: !!p.notify_new_lots, isAdmin: !!p.is_admin
+        };
+      })
+    };
   }
 
-  function renderCustomers(){
-    var customers = getCustomers();
+  async function renderCustomers(){
     var wrap = document.getElementById("customerList");
-    if (!customers.length) { wrap.innerHTML = '<div class="empty">No customer accounts yet.</div>'; return; }
-    wrap.innerHTML = customers.map(function(c){
+    wrap.innerHTML = '<div class="empty">Loading…</div>';
+    var res;
+    try { res = await getCustomers(); }
+    catch (err) { wrap.innerHTML = '<div class="empty">Couldn\'t load customers: ' + escapeHtml(err.message) + '</div>'; return; }
+    if (!res.list.length) { wrap.innerHTML = '<div class="empty">No customer accounts yet.</div>'; return; }
+    wrap.innerHTML = (res.emailsAvailable ? '' : EMAIL_HINT) + res.list.map(function(c){
       var addressLine = [c.address, c.city, c.state, c.zip, c.country].filter(Boolean).join(", ");
       return '<div class="offer-card">' +
-        '<div class="offer-top"><strong>' + escapeHtml(c.name || "(no name)") + '</strong>' +
+        '<div class="offer-top"><strong>' + escapeHtml(c.name || "(no name)") + (c.isAdmin ? ' <span class="badge badge-warn">Admin</span>' : '') + '</strong>' +
         '<span class="badge ' + (c.notifyNewLots ? "badge-good" : "badge-warn") + '">' + (c.notifyNewLots ? "Subscribed" : "Not subscribed") + '</span></div>' +
         '<div class="offer-meta">' + escapeHtml(c.email) + '</div>' +
         (addressLine ? '<div class="offer-meta" style="margin-top:4px;">' + escapeHtml(addressLine) + '</div>' : '') +
@@ -696,20 +712,41 @@
     }).join("");
   }
 
-  function renderMessages(){
-    var messages = safeGet("tr_contact_messages", []);
+  async function renderMessages(){
     var wrap = document.getElementById("messageList");
-    if (!wrap) return;
-    if (!messages.length) { wrap.innerHTML = '<div class="empty">No messages yet.</div>'; return; }
-    wrap.innerHTML = messages.map(function(m){
+    wrap.innerHTML = '<div class="empty">Loading…</div>';
+    var r = await sb.from("contact_messages").select("*").order("submitted_at", { ascending: false });
+    if (r.error) { wrap.innerHTML = '<div class="empty">Couldn\'t load messages: ' + escapeHtml(r.error.message) + '</div>'; return; }
+    if (!r.data.length) { wrap.innerHTML = '<div class="empty">No messages yet.</div>'; return; }
+    wrap.innerHTML = r.data.map(function(m){
       return '<div class="offer-card">' +
         '<div class="offer-top"><strong>' + escapeHtml(m.name || "(no name)") + '</strong>' +
         '<a class="btn btn-sm" href="mailto:' + encodeURIComponent(m.email) + '">Reply by email</a></div>' +
         '<div class="offer-meta">' + escapeHtml(m.email) + '</div>' +
         '<div style="margin-top:8px;white-space:pre-wrap;font-size:14px;">' + escapeHtml(m.message) + '</div>' +
-        '<div class="offer-meta" style="margin-top:6px;">' + new Date(m.submittedAt).toLocaleString("en-US") + '</div>' +
+        '<div class="offer-meta" style="margin-top:6px;">' + new Date(m.submitted_at).toLocaleString("en-US") + '</div>' +
         '</div>';
     }).join("");
+  }
+
+  /* ---- file downloads ---- */
+  async function saveFile(filename, text, mime){
+    if (window.claude && typeof window.claude.use === "function") {
+      try {
+        var downloads = await window.claude.use("downloads");
+        if (downloads) { await downloads.save({ filename: filename, data: text }); return true; }
+      } catch (err) {
+        if (err && err.code === "declined") return false;
+        // fall through to the standard browser download below
+      }
+    }
+    var blob = new Blob([text], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return true;
   }
 
   function csvEscape(val){
@@ -719,7 +756,10 @@
   }
 
   window.downloadCustomersCSV = async function(){
-    var customers = getCustomers();
+    var res;
+    try { res = await getCustomers(); }
+    catch (err) { showNotice("Couldn't load customers: " + err.message, true); return; }
+    var customers = res.list;
     if (!customers.length) { showNotice("No customer accounts to download yet.", true); return; }
     var headers = ["Name", "Email", "Address", "City", "State", "ZIP", "Country", "New lot alerts"];
     var rows = customers.map(function(c){
@@ -728,147 +768,30 @@
     });
     var csv = headers.map(csvEscape).join(",") + "\n" + rows.join("\n");
     var filename = "techrenew-customers-" + new Date().toISOString().slice(0, 10) + ".csv";
-
-    if (window.claude && typeof window.claude.use === "function") {
-      try {
-        var downloads = await window.claude.use("downloads");
-        if (downloads) {
-          await downloads.save({ filename: filename, data: csv });
-          showNotice("Downloaded " + customers.length + " customer" + (customers.length === 1 ? "" : "s") + " as CSV.");
-          return;
-        }
-      } catch (err) {
-        if (err && err.code === "declined") return;
-        // fall through to the standard browser download below
-      }
+    if (await saveFile(filename, csv, "text/csv;charset=utf-8;")) {
+      showNotice("Downloaded " + customers.length + " customer" + (customers.length === 1 ? "" : "s") + " as CSV.");
     }
-
-    var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showNotice("Downloaded " + customers.length + " customer" + (customers.length === 1 ? "" : "s") + " as CSV.");
   };
 
-  /* ---- full site backup / restore ---- */
-  function renderBackupPanel(){
-    var last = safeGet("tr_last_backup_at", null);
-    var label = document.getElementById("lastBackupLabel");
-    var warn = document.getElementById("backupWarnCard");
-    var globalBanner = document.getElementById("globalBackupBanner");
-    if (!last) {
-      if (label) label.textContent = "No backup has been downloaded yet.";
-      if (warn) {
-        warn.style.display = "block";
-        warn.innerHTML = "<strong>You haven't backed up yet.</strong> Everything on this site lives only in this browser — download a backup so a cleared cache or new device doesn't mean losing it all.";
-      }
-      if (globalBanner) {
-        globalBanner.style.display = "block";
-        globalBanner.textContent = "⚠ No backup yet — tap here to download one.";
-      }
-      return;
-    }
-    var days = Math.floor((Date.now() - last) / 86400000);
-    if (label) {
-      label.textContent = "Last backup: " + new Date(last).toLocaleString("en-US") +
-        (days > 0 ? " (" + days + " day" + (days === 1 ? "" : "s") + " ago)" : " (today)");
-    }
-    if (days >= 7) {
-      if (warn) {
-        warn.style.display = "block";
-        warn.innerHTML = "<strong>It's been " + days + " day" + (days === 1 ? "" : "s") + " since your last backup.</strong> Download a fresh one, especially before clearing your browser's data.";
-      }
-      if (globalBanner) {
-        globalBanner.style.display = "block";
-        globalBanner.textContent = "⚠ Backup is " + days + " days old — tap here to download a fresh one.";
-      }
-    } else {
-      if (warn) warn.style.display = "none";
-      if (globalBanner) globalBanner.style.display = "none";
-    }
-  }
-
+  /* ---- database backup (download only) ---- */
   window.downloadFullBackup = async function(){
+    var tables = ["categories", "lots", "lot_images", "lot_inventories", "offers", "profiles", "contact_messages"];
     var data = {};
-    BACKUP_KEYS.forEach(function(key){
-      var v = safeGet(key, null);
-      if (v !== null) data[key] = v;
-    });
-    var payload = { _backup: "techrenew", version: 1, createdAt: new Date().toISOString(), data: data };
-    var json = JSON.stringify(payload, null, 2);
+    for (var i = 0; i < tables.length; i++) {
+      var r = await sb.from(tables[i]).select("*");
+      if (r.error) { showNotice("Backup failed on " + tables[i] + ": " + r.error.message, true); return; }
+      data[tables[i]] = r.data;
+    }
+    var emails = await loadEmails();
+    if (emails) data.user_emails = emails;
+    var payload = { _backup: "techrenew", version: 2, createdAt: new Date().toISOString(), data: data };
     var filename = "techrenew-backup-" + new Date().toISOString().slice(0, 10) + ".json";
-
-    function finish(){
-      safeSet("tr_last_backup_at", Date.now());
-      showNotice("Backup downloaded.");
-      renderBackupPanel();
-    }
-
-    if (window.claude && typeof window.claude.use === "function") {
-      try {
-        var downloads = await window.claude.use("downloads");
-        if (downloads) { await downloads.save({ filename: filename, data: json }); finish(); return; }
-      } catch (err) {
-        if (err && err.code === "declined") return;
-        // fall through to the standard browser download below
-      }
-    }
-
-    var blob = new Blob([json], { type: "application/json;charset=utf-8;" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    finish();
+    if (await saveFile(filename, JSON.stringify(payload, null, 2), "application/json;charset=utf-8;")) showNotice("Backup downloaded.");
   };
 
-  window.restoreFullBackup = function(btn){
-    var fileInput = document.getElementById("restoreFile");
-    if (!fileInput.files || !fileInput.files.length) { showNotice("Choose a backup file first.", true); return; }
-
-    if (btn.dataset.armed !== "1") {
-      btn.dataset.armed = "1";
-      btn.dataset.originalText = btn.textContent;
-      btn.textContent = "Confirm? This replaces everything";
-      btn._armTimer = setTimeout(function(){
-        btn.dataset.armed = "0";
-        btn.textContent = btn.dataset.originalText;
-      }, 4000);
-      return;
-    }
-    clearTimeout(btn._armTimer);
-    btn.dataset.armed = "0";
-    btn.textContent = btn.dataset.originalText || "Restore from file";
-
-    var reader = new FileReader();
-    reader.onload = function(e){
-      var parsed;
-      try { parsed = JSON.parse(e.target.result); }
-      catch (err) { showNotice("That file isn't valid JSON.", true); return; }
-      if (!parsed || parsed._backup !== "techrenew" || !parsed.data) {
-        showNotice("That doesn't look like a techrenew backup file.", true);
-        return;
-      }
-      BACKUP_KEYS.forEach(function(key){
-        if (Object.prototype.hasOwnProperty.call(parsed.data, key)) safeSet(key, parsed.data[key]);
-      });
-      fileInput.value = "";
-      showNotice("Backup restored" + (parsed.createdAt ? " — from " + new Date(parsed.createdAt).toLocaleString("en-US") : "") + ".");
-      renderLots();
-      renderOffers();
-      renderCustomers();
-      renderEmailLog();
-      renderBackupPanel();
-    };
-    reader.onerror = function(){ showNotice("Couldn't read that file.", true); };
-    reader.readAsText(fileInput.files[0]);
-  };
+  /* ---- start ---- */
+  if (!sb) showGate("Couldn't connect to Supabase — check config.js.");
+  else checkAdmin();
 
 })();
 </script>

@@ -61,7 +61,7 @@
   .btn:active { transform: translateY(1px); }
   .btn-accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; border: none; }
 
-  section.info { padding: 48px 0 60px; padding-left: 20px; }
+  section.info { padding: 48px 0 60px; }
   section.info h1 { font-size: clamp(30px, 5vw, 42px); margin-bottom: 20px; }
   section.info p { color: var(--text-muted); line-height: 1.75; margin-bottom: 14px; max-width: 620px; font-size: 15.5px; }
   .contact-email { color: var(--brand-orange); font-weight: 600; text-decoration: none; }
@@ -147,18 +147,12 @@
 
 <div class="toast" id="toast"><span class="toast-icon" id="toastIcon">✓</span><span id="toastMsg"></span></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
 <script>
 (function(){
   "use strict";
-
-  function safeGet(key, fallback){
-    try { var v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
-    catch (e) { return fallback; }
-  }
-  function safeSet(key, val){
-    try { localStorage.setItem(key, JSON.stringify(val)); return true; }
-    catch (e) { return false; }
-  }
 
   function showToast(msg, icon){
     var t = document.getElementById("toast");
@@ -169,7 +163,9 @@
     t._hideTimer = setTimeout(function(){ t.classList.remove("show"); }, 2900);
   }
 
-  window.submitContactMessage = function(){
+  var sending = false;
+  window.submitContactMessage = async function(){
+    if (sending) return;
     var errEl = document.getElementById("contactError");
     errEl.textContent = "";
     var name = document.getElementById("cName").value.trim();
@@ -177,15 +173,16 @@
     var message = document.getElementById("cMessage").value.trim();
 
     if (!name || !email || !message) { errEl.textContent = "Fill in your name, email and message."; return; }
-    if (email.indexOf("@") === -1) { errEl.textContent = "Enter a valid email address."; return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { errEl.textContent = "Enter a valid email address."; return; }
+    if (name.length > 120) { errEl.textContent = "Name is too long (120 characters max)."; return; }
+    if (message.length > 5000) { errEl.textContent = "Message is too long (5,000 characters max)."; return; }
+    if (!window.sb) { errEl.textContent = "Couldn't connect — check your connection and try again."; return; }
 
-    var messages = safeGet("tr_contact_messages", []);
-    messages.unshift({ name: name, email: email, message: message, submittedAt: Date.now() });
-    safeSet("tr_contact_messages", messages);
-
-    var log = safeGet("tr_email_log", []);
-    log.unshift({ text: "Contact form message from " + name, meta: email, at: Date.now() });
-    safeSet("tr_email_log", log);
+    sending = true;
+    // No .select() here: senders aren't allowed to read messages back (RLS).
+    var res = await window.sb.from("contact_messages").insert({ name: name, email: email, message: message });
+    sending = false;
+    if (res.error) { errEl.textContent = "Couldn't send your message — please try again, or email us directly."; return; }
 
     document.getElementById("cName").value = "";
     document.getElementById("cEmail").value = "";

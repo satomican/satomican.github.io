@@ -427,7 +427,7 @@
 <footer class="site">
   <div class="wrap">
     <span class="f-name"><span class="b-tech">tech</span><span class="b-arrow">&#9654;</span><span class="b-renew">renew</span></span>
-    <p>Used desktops, laptops, servers, memory and power hardware, sold wholesale. This page is a working prototype: accounts and offers below are stored only in this browser, for demonstration.</p>
+    <p>Used desktops, laptops, servers, memory and power hardware, sold wholesale.</p>
     <div class="footer-links">
       <a href="about.html">About us</a>
       <a href="contact.html">Contact us</a>
@@ -456,7 +456,7 @@
     <div id="signupForm" style="display:none;">
       <div class="field"><label for="suName">Full name</label><input id="suName" type="text" autocomplete="name"></div>
       <div class="field"><label for="suEmail">Email</label><input id="suEmail" type="email" autocomplete="email"></div>
-      <div class="field"><label for="suPass">Password <span class="req-mark">*</span></label><input id="suPass" type="password" autocomplete="new-password"></div>
+      <div class="field"><label for="suPass">Password (8+ characters) <span class="req-mark">*</span></label><input id="suPass" type="password" autocomplete="new-password"></div>
       <div class="field"><label for="suAddress">Street address <span class="req-mark">*</span></label><input id="suAddress" type="text" autocomplete="street-address" placeholder="123 Main St"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="field"><label for="suCity">City <span class="req-mark">*</span></label><input id="suCity" type="text" autocomplete="address-level2"></div>
@@ -470,9 +470,10 @@
       <div class="field-hint" style="margin:-6px 0 14px;">Used for shipping if an offer is accepted.</div>
       <label class="checkbox-row"><input type="checkbox" id="suNotify" checked> Email me when a new lot is posted</label>
       <div class="error-msg" id="suError"></div>
+      <div class="error-msg" id="suInfo" style="color:var(--good);"></div>
       <button class="btn btn-accent btn-block" onclick="handleSignup()">Create account</button>
     </div>
-    <p class="fine">Prototype only — no real payment or verification. Account details are saved in this browser's local storage and are not sent anywhere.</p>
+    <p class="fine">No payment is taken on this site. Your address is only used to ship an accepted offer.</p>
   </div>
 </div>
 
@@ -549,9 +550,13 @@
 <div class="toast" id="toast"><span class="toast-icon" id="toastIcon">✓</span><span id="toastMsg"></span></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
 <script>
 (function(){
   "use strict";
+  var sb = window.sb;
 
   /* ---------- Data ---------- */
   var CATEGORIES = [
@@ -563,75 +568,43 @@
     { id: "power",   label: "Power" }
   ];
 
-  var DEFAULT_ITEMS = [
-    { id:"TR-DSK-0142", cat:"desktop", icon:"ic-desktop", title:"HP EliteDesk 705 G5 SFF",
-      spec:"AMD Athlon 300GE · 512GB SSD · 32GB RAM · Win 11 Pro", grade:"A", asking:130, hours:30 },
-    { id:"TR-DSK-0138", cat:"desktop", icon:"ic-desktop", title:"Dell OptiPlex 7080 Micro",
-      spec:"Core i5-10500T · 256GB SSD · 16GB RAM · No OS", grade:"B", asking:145, hours:18 },
-    { id:"TR-DSK-0151", cat:"desktop", icon:"ic-desktop", title:"HP ProDesk 600 G5 SFF",
-      spec:"Core i5-9500 · 512GB SSD · 16GB RAM · No OS", grade:"B", asking:120, hours:44 },
-
-    { id:"TR-LAP-0873", cat:"laptop", icon:"ic-laptop", title:"Dell Latitude 5320",
-      spec:"Core i5-1145G7 · 512GB SSD · 16GB RAM · 13.3\" FHD · missing keycap", grade:"B", asking:155, hours:9 },
-    { id:"TR-LAP-0869", cat:"laptop", icon:"ic-laptop", title:"Dell Precision 5520",
-      spec:"Core i7-7820HQ · 256GB SSD · 16GB RAM · no OS / no charger", grade:"C", asking:200, hours:26 },
-    { id:"TR-LAP-0855", cat:"laptop", icon:"ic-laptop", title:"Lenovo ThinkPad E14",
-      spec:"Core i7-10510U · 256GB SSD · 8GB RAM · no OS", grade:"B", asking:175, hours:52 },
-
-    { id:"TR-SRV-0231", cat:"server", icon:"ic-server", title:"Dell PowerEdge R720 2U",
-      spec:"2x Xeon E5-2670 · 128GB RAM · 8x 600GB SAS · rail kit incl.", grade:"B", asking:520, hours:37 },
-    { id:"TR-SRV-0228", cat:"server", icon:"ic-server", title:"HP ProLiant DL380 G9 2U",
-      spec:"2x Xeon E5-2680v4 · 256GB RAM · 8x SFF bays", grade:"A", asking:690, hours:14 },
-    { id:"TR-SRV-0219", cat:"server", icon:"ic-server", title:"Dell PowerEdge R730xd",
-      spec:"2x Xeon E5-2690v4 · 192GB RAM · 12x 4TB storage bays", grade:"B", asking:810, hours:60 },
-
-    { id:"TR-MEM-1042", cat:"memory", icon:"ic-memory", title:"Samsung 32GB PC4-2400T RDIMM",
-      spec:"Server memory · 2Rx4 · lot of 4 (128GB total)", grade:"A", asking:225, hours:22 },
-    { id:"TR-MEM-1039", cat:"memory", icon:"ic-memory", title:"SK Hynix 32GB PC4-2400T RDIMM",
-      spec:"Server memory · single module", grade:"A", asking:60, hours:11 },
-    { id:"TR-MEM-1024", cat:"memory", icon:"ic-memory", title:"Micron 16GB PC3L-10600R RDIMM",
-      spec:"Server memory · lot of 10", grade:"B", asking:280, hours:41 },
-
-    { id:"TR-PWR-0311", cat:"power", icon:"ic-power", title:"HP ProLiant 800W Hot-Swap PSU",
-      spec:"Hot-swap server power supply · tested under load", grade:"A", asking:45, hours:20 },
-    { id:"TR-PWR-0307", cat:"power", icon:"ic-power", title:"Dell PowerEdge 1100W Redundant PSU",
-      spec:"Redundant power supply module", grade:"B", asking:38, hours:33 },
-    { id:"TR-PWR-0298", cat:"power", icon:"ic-power", title:"APC Smart-UPS 1500VA Rack Mount",
-      spec:"2U rack UPS · new batteries installed", grade:"A", asking:210, hours:48 }
-  ];
-
   var GRADE_LABEL = { A:"Grade A · Like new", B:"Grade B · Light wear", C:"Grade C · Functional" };
   var GRADE_CLASS = { A:"badge-good", B:"badge-warn", C:"badge-bad" };
 
   function escapeAttr(s){ return String(s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+  function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
-  /* ---------- Storage helpers ---------- */
-  function safeGet(key, fallback){
-    try {
-      var v = window.localStorage.getItem(key);
-      return v ? JSON.parse(v) : fallback;
-    } catch(e){ return fallback; }
+  /* ---------- Lots from Supabase ---------- */
+  var ITEMS = [];
+  var itemsLoaded = false;
+
+  function rowToItem(r){
+    var imgs = (r.lot_images || []).slice().sort(function(a, b){ return a.sort_order - b.sort_order; });
+    var inv = Array.isArray(r.lot_inventories) ? r.lot_inventories[0] : r.lot_inventories;
+    return {
+      id: r.id, cat: r.category, icon: "ic-" + r.category, title: r.title, spec: r.spec || "",
+      grade: r.grade, asking: r.asking_price,
+      photos: imgs.map(function(i){ return i.url; }),
+      hasInventory: !!inv
+    };
   }
-  function safeSet(key, val){
-    try { window.localStorage.setItem(key, JSON.stringify(val)); } catch(e){ /* storage unavailable */ }
+
+  async function loadItems(){
+    if (!sb) { itemsLoaded = true; renderGrid("Couldn't connect to the store. Please refresh the page."); return; }
+    var res = await sb.from("lots")
+      .select("id, category, title, spec, grade, asking_price, created_at, lot_images(url, sort_order), lot_inventories(lot_id)")
+      .eq("status", "open")
+      .order("created_at", { ascending: false });
+    itemsLoaded = true;
+    if (res.error) { renderGrid("Couldn't load lots. Please refresh the page."); return; }
+    ITEMS = res.data.map(rowToItem);
+    renderGrid();
+    document.getElementById("statOpen").textContent = ITEMS.length;
   }
 
-  var ITEMS = safeGet("tr_listings", null);
-  if (!ITEMS || !ITEMS.length) {
-    ITEMS = DEFAULT_ITEMS;
-    safeSet("tr_listings", ITEMS);
-  }
-
-  window.addEventListener("storage", function(e){
-    if (e.key === "tr_listings") {
-      ITEMS = safeGet("tr_listings", DEFAULT_ITEMS);
-      renderGrid();
-    }
-  });
-
-  var accounts = safeGet("tr_accounts", {});
-  var session = safeGet("tr_session", null);
-  var offers = safeGet("tr_offers", []);
+  /* ---------- Account state (filled in by Supabase Auth) ---------- */
+  var session = null;   // { id, email, name } while signed in
+  var profile = null;   // row from public.profiles
 
   /* ---------- Address dropdowns ---------- */
   var US_STATES = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware",
@@ -756,17 +729,22 @@
   var grid = document.getElementById("grid");
   var photoIdx = {};
 
-  function renderGrid(){
+  function renderGrid(errorMsg){
+    if (errorMsg || !itemsLoaded) {
+      document.getElementById("catCount").textContent = "";
+      grid.innerHTML = '<div class="empty">' + escapeHtml(errorMsg || "Loading lots…") + '</div>';
+      return;
+    }
     var list = ITEMS.filter(function(it){ return activeCat === "all" || it.cat === activeCat; });
     document.getElementById("catCount").textContent = list.length + (list.length === 1 ? " lot" : " lots");
-    grid.innerHTML = "";
+    grid.innerHTML = list.length ? "" : '<div class="empty">No open lots in this category right now — check back soon.</div>';
     list.forEach(function(it){
       var card = document.createElement("div");
       card.className = "card";
       var photos = it.photos && it.photos.length ? it.photos : (it.photo ? [it.photo] : []);
       var idx = photoIdx[it.id] || 0;
       var mediaHtml = photos.length
-        ? '<div class="card-media"><img class="card-photo" data-photo-id="' + it.id + '" src="' + photos[idx] + '" alt="' + escapeAttr(it.title) + '">' +
+        ? '<div class="card-media"><img class="card-photo" data-photo-id="' + escapeAttr(it.id) + '" src="' + escapeAttr(photos[idx]) + '" alt="' + escapeAttr(it.title) + '">' +
           (photos.length > 1 ? '<span class="photo-count">' + (idx + 1) + '/' + photos.length + '</span>' : '') + '</div>'
         : '<svg class="card-icon"><use href="#' + (it.icon || "ic-desktop") + '"/></svg>';
       card.innerHTML =
@@ -774,12 +752,12 @@
           mediaHtml +
           '<span class="badge ' + GRADE_CLASS[it.grade] + '">' + GRADE_LABEL[it.grade] + '</span>' +
         '</div>' +
-        '<div class="card-id mono">' + it.id + '</div>' +
-        '<div class="card-title">' + it.title + '</div>' +
-        '<div class="card-spec">' + it.spec + '</div>' +
+        '<div class="card-id mono">' + escapeHtml(it.id) + '</div>' +
+        '<div class="card-title">' + escapeHtml(it.title) + '</div>' +
+        '<div class="card-spec">' + escapeHtml(it.spec) + '</div>' +
         '<div class="card-bottom">' +
           '<div class="price-row"><div><div class="price">$' + it.asking + '</div><div class="price-label">asking price</div></div></div>' +
-          '<button class="btn btn-accent btn-block" data-offer-id="' + it.id + '">Make an offer</button>' +
+          '<button class="btn btn-accent btn-block" data-offer-id="' + escapeAttr(it.id) + '">Make an offer</button>' +
         '</div>';
       grid.appendChild(card);
       card.onclick = function(e){
@@ -802,8 +780,7 @@
     });
   }
   renderGrid();
-
-  document.getElementById("statOpen").textContent = ITEMS.length;
+  loadItems();
 
   /* ---------- Modal plumbing ---------- */
   function openModal(id){ document.getElementById(id).classList.add("open"); }
@@ -840,21 +817,37 @@
     el.style.display = msg ? "block" : "none";
   }
 
-  window.handleSignin = function(){
+  function setInfo(id, msg){
+    var el = document.getElementById(id);
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+  }
+
+  var authBusy = false;
+
+  window.handleSignin = async function(){
+    if (authBusy) return;
     var email = document.getElementById("siEmail").value.trim().toLowerCase();
     var pass = document.getElementById("siPass").value;
     setErr("siError", "");
     if (!email || !pass) { setErr("siError", "Enter your email and password."); return; }
-    var acct = accounts[email];
-    if (!acct || acct.pass !== pass) { setErr("siError", "No matching account. Check your details or create an account."); return; }
-    session = { email: email, name: acct.name };
-    safeSet("tr_session", session);
+    if (!sb) { setErr("siError", "Couldn't connect — please refresh the page."); return; }
+    authBusy = true;
+    var res = await sb.auth.signInWithPassword({ email: email, password: pass });
+    authBusy = false;
+    if (res.error) {
+      var m = res.error.message || "";
+      if (/confirm/i.test(m)) setErr("siError", "Please confirm your email first — check your inbox for the link we sent.");
+      else setErr("siError", "Email or password is incorrect.");
+      return;
+    }
+    document.getElementById("siPass").value = "";
     closeModal("authOverlay");
-    updateAccountUI();
-    showToast("Signed in as " + acct.name);
+    // updateAccountUI runs from onAuthStateChange below
   };
 
-  window.handleSignup = function(){
+  window.handleSignup = async function(){
+    if (authBusy) return;
     var name = document.getElementById("suName").value.trim();
     var email = document.getElementById("suEmail").value.trim().toLowerCase();
     var pass = document.getElementById("suPass").value;
@@ -867,34 +860,94 @@
     var zip = document.getElementById("suZip").value.trim();
     var notify = document.getElementById("suNotify").checked;
     setErr("suError", "");
+    setInfo("suInfo", "");
     if (!name || !email || !pass || !address || !city || !state || !zip) {
       setErr("suError", "Please fill in all required fields (marked with *).");
       return;
     }
-    if (accounts[email]) { setErr("suError", "An account with this email already exists."); return; }
-    if (pass.length < 4) { setErr("suError", "Use at least 4 characters for your password."); return; }
-    accounts[email] = { name: name, pass: pass, address: address, city: city, state: state, zip: zip, country: country, notifyNewLots: notify };
-    safeSet("tr_accounts", accounts);
-    session = { email: email, name: name };
-    safeSet("tr_session", session);
-    closeModal("authOverlay");
-    updateAccountUI();
-    showToast("Welcome, " + name + " — account created");
+    if (pass.length < 8) { setErr("suError", "Use at least 8 characters for your password."); return; }
+    if (!sb) { setErr("suError", "Couldn't connect — please refresh the page."); return; }
+
+    authBusy = true;
+    // The address is kept in the account's metadata until the first sign-in,
+    // then copied into the profile (see syncProfileFromSignup). This works whether
+    // or not Supabase asks new users to confirm their email first.
+    var res = await sb.auth.signUp({
+      email: email,
+      password: pass,
+      options: {
+        emailRedirectTo: location.origin + location.pathname,
+        data: { name: name, address: address, city: city, state: state, zip: zip, country: country, notify_new_lots: notify }
+      }
+    });
+    authBusy = false;
+    if (res.error) {
+      var m = res.error.message || "";
+      if (/registered|exists/i.test(m)) setErr("suError", "An account with this email already exists. Try signing in.");
+      else if (/password/i.test(m)) setErr("suError", m);
+      else setErr("suError", "Couldn't create the account: " + m);
+      return;
+    }
+    document.getElementById("suPass").value = "";
+    if (res.data.session) {
+      closeModal("authOverlay");
+      showToast("Welcome, " + name + " — account created");
+    } else {
+      setInfo("suInfo", "Almost done — we sent a confirmation link to " + email + ". Click it, then sign in.");
+    }
   };
 
-  window.signOut = function(){
-    session = null;
-    safeSet("tr_session", null);
-    updateAccountUI();
+  window.signOut = async function(){
+    if (sb) await sb.auth.signOut();
     showToast("Signed out");
   };
+
+  async function loadProfile(userId){
+    var res = await sb.from("profiles").select("*").eq("id", userId).maybeSingle();
+    return res.error ? null : res.data;
+  }
+
+  // First sign-in after sign-up: copy the address entered on the sign-up form into the profile.
+  async function syncProfileFromSignup(user, prof){
+    var meta = user.user_metadata || {};
+    if (!prof || prof.address || !meta.address) return prof;
+    var patch = {
+      name: prof.name || meta.name || null,
+      address: meta.address, city: meta.city || null, state: meta.state || null,
+      zip: meta.zip || null, country: meta.country || null,
+      notify_new_lots: !!meta.notify_new_lots
+    };
+    var res = await sb.from("profiles").update(patch).eq("id", user.id);
+    if (res.error) return prof;
+    return Object.assign({}, prof, patch);
+  }
+
+  async function handleAuthChange(authSession, quiet){
+    if (!authSession) {
+      session = null; profile = null;
+      updateAccountUI();
+      return;
+    }
+    var user = authSession.user;
+    var prof = await loadProfile(user.id);
+    prof = await syncProfileFromSignup(user, prof);
+    var wasSignedIn = !!session;
+    profile = prof;
+    session = {
+      id: user.id,
+      email: user.email,
+      name: (prof && prof.name) || (user.user_metadata && user.user_metadata.name) || user.email
+    };
+    updateAccountUI();
+    if (!wasSignedIn && !quiet) showToast("Signed in as " + session.name);
+  }
 
   function updateAccountUI(){
     var acctBtn = document.getElementById("acctBtn");
     var myOffersBtn = document.getElementById("myOffersBtn");
     var heroCreateBtn = document.getElementById("heroCreateBtn");
     if (session) {
-      acctBtn.textContent = session.name.split(" ")[0] + " · Sign out";
+      acctBtn.textContent = String(session.name).split(" ")[0] + " · Sign out";
       acctBtn.onclick = window.signOut;
       myOffersBtn.style.display = "inline-block";
       heroCreateBtn.style.display = "none";
@@ -908,30 +961,45 @@
   document.getElementById("myOffersBtn").onclick = function(){ renderMyOffers(); fillAddressFields(); openModal("myOffersOverlay"); };
   updateAccountUI();
 
-  function fillAddressFields(){
-    var acct = session ? accounts[session.email] : null;
-    document.getElementById("acctAddress").value = (acct && acct.address) || "";
-    document.getElementById("acctCity").value = (acct && acct.city) || "";
-    document.getElementById("acctState").setValue((acct && acct.state) || "");
-    document.getElementById("acctRegion").value = (acct && acct.state) || "";
-    document.getElementById("acctZip").value = (acct && acct.zip) || "";
-    document.getElementById("acctCountry").setValue((acct && acct.country) || "United States");
-    document.getElementById("acctNotify").checked = !!(acct && acct.notifyNewLots);
+  if (sb) {
+    var firstAuthEvent = true;
+    sb.auth.onAuthStateChange(function(event, authSession){
+      // Don't call Supabase directly inside this callback (supabase-js can deadlock) — defer it.
+      // The first event is the page restoring an existing session — no "Signed in" toast for that.
+      var quiet = firstAuthEvent; firstAuthEvent = false;
+      setTimeout(function(){
+        handleAuthChange(event === "SIGNED_OUT" ? null : authSession, quiet);
+      }, 0);
+    });
   }
 
-  window.saveAddress = function(){
-    if (!session) return;
-    var acct = accounts[session.email];
-    if (!acct) return;
-    acct.address = document.getElementById("acctAddress").value.trim();
-    acct.city = document.getElementById("acctCity").value.trim();
-    acct.country = document.getElementById("acctCountry").value.trim();
-    acct.state = (acct.country === "United States")
-      ? document.getElementById("acctState").value.trim()
-      : document.getElementById("acctRegion").value.trim();
-    acct.zip = document.getElementById("acctZip").value.trim();
-    acct.notifyNewLots = document.getElementById("acctNotify").checked;
-    safeSet("tr_accounts", accounts);
+  function fillAddressFields(){
+    var p = profile || {};
+    document.getElementById("acctAddress").value = p.address || "";
+    document.getElementById("acctCity").value = p.city || "";
+    document.getElementById("acctState").setValue(p.state || "");
+    document.getElementById("acctRegion").value = p.state || "";
+    document.getElementById("acctZip").value = p.zip || "";
+    document.getElementById("acctCountry").setValue(p.country || "United States");
+    document.getElementById("acctNotify").checked = !!p.notify_new_lots;
+  }
+
+  window.saveAddress = async function(){
+    if (!session || !session.id) return;
+    var country = document.getElementById("acctCountry").value.trim();
+    var patch = {
+      address: document.getElementById("acctAddress").value.trim(),
+      city: document.getElementById("acctCity").value.trim(),
+      country: country,
+      state: (country === "United States")
+        ? document.getElementById("acctState").value.trim()
+        : document.getElementById("acctRegion").value.trim(),
+      zip: document.getElementById("acctZip").value.trim(),
+      notify_new_lots: document.getElementById("acctNotify").checked
+    };
+    var res = await sb.from("profiles").update(patch).eq("id", session.id);
+    if (res.error) { showToast("Couldn't save — please try again.", "!"); return; }
+    profile = Object.assign({}, profile, patch);
     showToast("Preferences saved");
   };
 
@@ -949,7 +1017,7 @@
         media.innerHTML = '<div class="det-photo-wrap"><svg class="card-icon"><use href="#' + (item.icon || "ic-desktop") + '"/></svg></div>';
         return;
       }
-      media.innerHTML = '<div class="det-photo-wrap"><img src="' + photos[detPhotoIdx] + '" alt="' + escapeAttr(item.title) + '">' +
+      media.innerHTML = '<div class="det-photo-wrap"><img src="' + escapeAttr(photos[detPhotoIdx]) + '" alt="' + escapeAttr(item.title) + '">' +
         (photos.length > 1 ? '<span class="det-photo-count">' + (detPhotoIdx + 1) + '/' + photos.length + '</span>' : '') + '</div>';
       if (photos.length > 1) {
         media.querySelector("img").onclick = function(){
@@ -971,9 +1039,9 @@
       openOfferModal(item.id);
     };
     var invBtn = document.getElementById("detInventoryBtn");
-    if (item.inventory && item.inventory.data && item.inventory.data.length > 1) {
+    if (item.hasInventory) {
       invBtn.style.display = "";
-      invBtn.textContent = "Download item list (" + (item.inventory.data.length - 1) + " items, .xlsx)";
+      invBtn.textContent = "Download item list (.xlsx)";
       invBtn.onclick = function(){ downloadInventory(item); };
     } else {
       invBtn.style.display = "none";
@@ -982,13 +1050,15 @@
     openModal("detailsOverlay");
   };
 
-  function downloadInventory(item){
+  async function downloadInventory(item){
     if (typeof XLSX === "undefined") { showToast("Couldn't load the file — check your connection and try again."); return; }
+    var res = await sb.from("lot_inventories").select("file_name, data").eq("lot_id", item.id).maybeSingle();
+    if (res.error || !res.data) { showToast("Couldn't load the item list — please try again."); return; }
     try {
-      var ws = XLSX.utils.aoa_to_sheet(item.inventory.data);
+      var ws = XLSX.utils.aoa_to_sheet(res.data.data);
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-      var name = item.inventory.fileName || (item.id + "-inventory.xlsx");
+      var name = res.data.file_name || (item.id + "-inventory.xlsx");
       if (!/\.xlsx$/i.test(name)) name = name.replace(/\.[^.]+$/, "") + ".xlsx";
       XLSX.writeFile(wb, name);
     } catch (e) {
@@ -998,6 +1068,7 @@
 
   /* ---------- Offers ---------- */
   var pendingOfferItemId = null;
+  var offerBusy = false;
   window.openOfferModal = function(itemId){
     if (!session) {
       openAuth("signin");
@@ -1015,41 +1086,52 @@
     openModal("offerOverlay");
   };
 
-  window.submitOffer = function(){
-    var amount = parseFloat(document.getElementById("offerAmount").value);
+  window.submitOffer = async function(){
+    if (offerBusy) return;
+    var amount = Number(document.getElementById("offerAmount").value);
     setErr("offerError", "");
     if (!amount || amount <= 0) { setErr("offerError", "Enter a valid offer amount."); return; }
+    if (!Number.isInteger(amount)) { setErr("offerError", "Enter a whole-dollar amount (no cents)."); return; }
+    if (amount > 10000000) { setErr("offerError", "That amount is too large."); return; }
     var item = ITEMS.filter(function(i){ return i.id === pendingOfferItemId; })[0];
+    if (!item || !session) return;
     var note = document.getElementById("offerNote").value.trim();
-    offers.unshift({
-      itemId: item.id,
-      itemTitle: item.title,
-      amount: amount,
-      note: note,
-      email: session.email,
-      status: "Pending review",
-      submittedAt: Date.now()
-    });
-    safeSet("tr_offers", offers);
+    if (note.length > 1000) { setErr("offerError", "Note is too long (1,000 characters max)."); return; }
+
+    offerBusy = true;
+    var res = await sb.from("offers").insert({ lot_id: item.id, amount: amount, note: note || null });
+    offerBusy = false;
+    if (res.error) {
+      setErr("offerError", "Couldn't send your offer — this lot may have just closed. Please refresh and try again.");
+      return;
+    }
     closeModal("offerOverlay");
     showToast("Offer sent — $" + amount + " on " + item.title + ". We'll be in touch soon.", "🚀");
   };
 
-  function renderMyOffers(){
+  async function renderMyOffers(){
     var list = document.getElementById("myOffersList");
-    var mine = session ? offers.filter(function(o){ return o.email === session.email; }) : [];
+    if (!session) { list.innerHTML = ""; return; }
+    list.innerHTML = '<div class="empty">Loading…</div>';
+    var res = await sb.from("offers")
+      .select("id, lot_id, amount, note, status, submitted_at, lots(title)")
+      .eq("user_id", session.id)
+      .order("submitted_at", { ascending: false });
+    if (res.error) { list.innerHTML = '<div class="empty">Couldn\'t load your offers — please try again.</div>'; return; }
+    var mine = res.data;
     if (!mine.length) {
       list.innerHTML = '<div class="empty">No offers yet. Browse the lots and send your first offer.</div>';
       return;
     }
     list.innerHTML = mine.map(function(o){
-      var d = new Date(o.submittedAt);
+      var d = new Date(o.submitted_at);
       var cls = o.status === "Accepted" ? "badge-good" : o.status === "Declined" ? "badge-bad" : "badge-warn";
+      var title = (o.lots && o.lots.title) || o.lot_id;
       return '<div class="offer-row">' +
-        '<div class="offer-row-top"><span class="offer-title">' + o.itemTitle + '</span>' +
-        '<span class="badge ' + cls + '">' + o.status + '</span></div>' +
+        '<div class="offer-row-top"><span class="offer-title">' + escapeHtml(title) + '</span>' +
+        '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
         '<div class="offer-meta">$' + o.amount + ' · ' + d.toLocaleDateString() + '</div>' +
-        (o.note ? '<div class="card-spec" style="margin-top:6px;">' + o.note + '</div>' : '') +
+        (o.note ? '<div class="card-spec" style="margin-top:6px;">' + escapeHtml(o.note) + '</div>' : '') +
         '</div>';
     }).join("");
   }
