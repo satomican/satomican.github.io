@@ -131,11 +131,13 @@
 </header>
 
 <div class="wrap">
+  <div id="globalBackupBanner" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;border:1px solid var(--bad);background:var(--bad-bg);color:var(--bad);font-size:13px;font-weight:500;cursor:pointer;" onclick="document.querySelector('[data-panel=panelBackup]').click()"></div>
   <div class="tabs2" id="mainTabs">
     <button class="tab2 active" data-panel="panelLots">Manage lots</button>
     <button class="tab2" data-panel="panelOffers">Offers</button>
     <button class="tab2" data-panel="panelCustomers">Customers</button>
     <button class="tab2" data-panel="panelEmail">Email log</button>
+    <button class="tab2" data-panel="panelBackup">Backup</button>
   </div>
 
   <!-- ===== LOTS PANEL ===== -->
@@ -167,6 +169,9 @@
           <div class="field-hint">US Eastern Time (UTC-5). This prototype doesn't adjust for daylight saving.</div>
         </div>
         <div class="field"><label>Photos (up to 10)</label><input id="newPhoto" type="file" accept="image/*" multiple></div>
+        <div class="field" style="grid-column:1/-1;"><label>Item list (.xlsx/.xls/.csv, optional)</label><input id="newInventory" type="file" accept=".xlsx,.xls,.csv">
+          <div class="field-hint">First row should be column headers. Customers get a "Download item list" button — the file itself isn't shown on the site.</div>
+        </div>
       </div>
       <div style="margin-top:12px;"><button class="btn btn-accent" onclick="addLot()">Add lot</button></div>
     </div>
@@ -204,6 +209,25 @@
     <div id="emailLog" class="card2"></div>
   </section>
 
+  <!-- ===== BACKUP PANEL ===== -->
+  <section id="panelBackup" class="panel">
+    <div class="card2" id="backupWarnCard" style="display:none;border:1px solid var(--bad);background:var(--bad-bg);color:var(--bad);"></div>
+    <div class="card2">
+      <h3 style="font-size:18px;margin-bottom:6px;">Download a backup</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Saves everything — lots, offers, customer accounts and the email log — into one file. Everything on this site lives only in this browser, so if it's ever cleared, this file is the only way to get it back.</p>
+      <div id="lastBackupLabel" style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <button class="btn btn-accent" onclick="downloadFullBackup()">Download full backup (.json)</button>
+    </div>
+    <div class="card2">
+      <h3 style="font-size:18px;margin-bottom:6px;">Restore from a backup</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">This replaces everything currently on this site with what's in the backup file. Use it after clearing browser data, or to move this site's data to a new browser or computer.</p>
+      <input id="restoreFile" type="file" accept=".json">
+      <div style="margin-top:10px;"><button class="btn btn-sm btn-danger" id="restoreBtn" onclick="restoreFullBackup(this)">Restore from file</button></div>
+    </div>
+    <p class="fine">A backup is a snapshot at the moment you download it — anything added after won't be in it. Make a fresh one regularly, and especially before clearing your browser's data.</p>
+  </section>
+
+
   <p class="fine">This admin page is a prototype. Data is stored only in this browser's localStorage and is not shared with other devices or users. Hosting it on the same domain as index.html (e.g. GitHub Pages) lets it share data with the customer site.</p>
 </div>
 </div>
@@ -211,6 +235,7 @@
 
 <div class="admin-toast" id="adminToast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -230,6 +255,7 @@
   var GRADE_LABEL = { A:"Grade A · Like new", B:"Grade B · Light wear", C:"Grade C · Functional" };
   var GRADE_CLASS = { A:"badge-good", B:"badge-warn", C:"badge-bad" };
   var CAT_LABEL = { desktop:"Desktop", laptop:"Laptop", server:"Server", memory:"Memory", power:"Power" };
+  var BACKUP_KEYS = ["tr_listings", "tr_accounts", "tr_offers", "tr_deadlines", "tr_email_log", "tr_seeded_defaults"];
 
   /* ---- gate ---- */
   window.tryGate = function(){
@@ -259,6 +285,7 @@
     if (btn.dataset.panel === "panelOffers") renderOffers();
     if (btn.dataset.panel === "panelEmail") renderEmailLog();
     if (btn.dataset.panel === "panelCustomers") renderCustomers();
+    if (btn.dataset.panel === "panelBackup") renderBackupPanel();
   });
 
   var activeCat = "all";
@@ -274,6 +301,7 @@
     renderOffers();
     renderEmailLog();
     renderCustomers();
+    renderBackupPanel();
   }
 
   /* ---- lots ---- */
@@ -387,6 +415,25 @@
     })).then(function(results){ return results.filter(Boolean); });
   }
 
+  function parseInventoryFile(file){
+    return new Promise(function(resolve, reject){
+      if (typeof XLSX === "undefined") { reject(new Error("Spreadsheet library didn't load — check your connection and try again.")); return; }
+      var reader = new FileReader();
+      reader.onload = function(e){
+        try {
+          var wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+          var sheet = wb.Sheets[wb.SheetNames[0]];
+          var data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
+          if (!data.length) { reject(new Error("That file looks empty.")); return; }
+          if (data.length > 501) { data = data.slice(0, 501); showNotice("Only the first 500 rows were kept."); }
+          resolve({ fileName: file.name, data: data });
+        } catch (err) { reject(new Error("Couldn't read that file — is it a valid Excel/CSV file?")); }
+      };
+      reader.onerror = function(){ reject(new Error("Couldn't read that file.")); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
   window.addLot = function(){
     var cat = document.getElementById("newCat").value;
     var grade = document.getElementById("newGrade").value;
@@ -397,6 +444,7 @@
     var closeAtStr = document.getElementById("newCloseAt").value;
     var closeAtUTCms = estStringToUTCms(closeAtStr);
     var fileInput = document.getElementById("newPhoto");
+    var invInput = document.getElementById("newInventory");
 
     if (!title || !price) { showNotice("Enter a title and an asking price.", true); return; }
     if (!closeAtUTCms) { showNotice("Pick a close date and time.", true); return; }
@@ -408,10 +456,12 @@
       return;
     }
 
-    function finish(photos){
+    function finish(photos, inventory){
       var list = getLots();
       var id = customId || genId(cat);
-      list.push({ id: id, cat: cat, icon: "ic-" + cat, title: title, spec: spec, grade: grade, asking: price, photos: photos });
+      var lot = { id: id, cat: cat, icon: "ic-" + cat, title: title, spec: spec, grade: grade, asking: price, photos: photos };
+      if (inventory) lot.inventory = inventory;
+      list.push(lot);
       setLots(list);
       var deadlines = safeGet("tr_deadlines", {});
       deadlines[id] = closeAtUTCms;
@@ -424,14 +474,24 @@
       document.getElementById("newSpec").value = "";
       document.getElementById("newCloseAt").value = defaultCloseAtString(24);
       fileInput.value = "";
+      invInput.value = "";
       renderLots();
     }
 
-    if (fileInput.files && fileInput.files.length) {
-      if (fileInput.files.length > 10) showNotice("Only the first 10 photos will be used.");
-      readFilesAsDataURLs(fileInput.files, 10).then(finish);
+    function withPhotos(){
+      if (fileInput.files && fileInput.files.length) {
+        if (fileInput.files.length > 10) showNotice("Only the first 10 photos will be used.");
+        return readFilesAsDataURLs(fileInput.files, 10);
+      }
+      return Promise.resolve([]);
+    }
+
+    if (invInput.files && invInput.files.length) {
+      parseInventoryFile(invInput.files[0]).then(function(inventory){
+        withPhotos().then(function(photos){ finish(photos, inventory); });
+      }).catch(function(err){ showNotice(err.message, true); });
     } else {
-      finish([]);
+      withPhotos().then(function(photos){ finish(photos, null); });
     }
   };
 
@@ -487,6 +547,28 @@
     renderLots();
   };
 
+  window.setInventory = function(id, fileList){
+    if (!fileList || !fileList.length) return;
+    var list = getLots();
+    var idx = list.findIndex(function(it){ return it.id === id; });
+    if (idx === -1) return;
+    parseInventoryFile(fileList[0]).then(function(inventory){
+      list[idx].inventory = inventory;
+      setLots(list);
+      showNotice("Item list saved: " + (inventory.data.length - 1) + " item(s).");
+      renderLots();
+    }).catch(function(err){ showNotice(err.message, true); });
+  };
+
+  window.removeInventory = function(id){
+    var list = getLots();
+    var idx = list.findIndex(function(it){ return it.id === id; });
+    if (idx === -1 || !list[idx].inventory) return;
+    delete list[idx].inventory;
+    setLots(list);
+    renderLots();
+  };
+
   function renderLots(){
     var list = getLots().filter(function(it){ return activeCat === "all" || it.cat === activeCat; });
     var wrap = document.getElementById("lotList");
@@ -513,6 +595,16 @@
               '<label>Photos (' + photos.length + '/10)</label>' +
               '<div class="photo-strip">' + strip + '</div>' +
               (photos.length < 10 ? '<input type="file" accept="image/*" multiple onchange="addPhotos(\'' + it.id + '\', this.files)">' : '<div class="photo-count-label">Maximum reached — remove one to add another.</div>') +
+            '</div>' +
+            '<div class="field" style="grid-column:1/-1;">' +
+              '<label>Item list</label>' +
+              (it.inventory && it.inventory.data ?
+                '<div class="photo-count-label">' + escapeHtml(it.inventory.fileName || "inventory") + ' — ' + (it.inventory.data.length - 1) + ' item(s)</div>' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+                  '<input style="flex:1;min-width:160px;" type="file" accept=".xlsx,.xls,.csv" onchange="setInventory(\'' + it.id + '\', this.files)">' +
+                  '<button class="btn btn-sm btn-danger" onclick="removeInventory(\'' + it.id + '\')">Remove</button>' +
+                '</div>'
+                : '<input type="file" accept=".xlsx,.xls,.csv" onchange="setInventory(\'' + it.id + '\', this.files)">') +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -663,6 +755,121 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showNotice("Downloaded " + customers.length + " customer" + (customers.length === 1 ? "" : "s") + " as CSV.");
+  };
+
+  /* ---- full site backup / restore ---- */
+  function renderBackupPanel(){
+    var last = safeGet("tr_last_backup_at", null);
+    var label = document.getElementById("lastBackupLabel");
+    var warn = document.getElementById("backupWarnCard");
+    var globalBanner = document.getElementById("globalBackupBanner");
+    if (!last) {
+      if (label) label.textContent = "No backup has been downloaded yet.";
+      if (warn) {
+        warn.style.display = "block";
+        warn.innerHTML = "<strong>You haven't backed up yet.</strong> Everything on this site lives only in this browser — download a backup so a cleared cache or new device doesn't mean losing it all.";
+      }
+      if (globalBanner) {
+        globalBanner.style.display = "block";
+        globalBanner.textContent = "⚠ No backup yet — tap here to download one.";
+      }
+      return;
+    }
+    var days = Math.floor((Date.now() - last) / 86400000);
+    if (label) {
+      label.textContent = "Last backup: " + new Date(last).toLocaleString("en-US") +
+        (days > 0 ? " (" + days + " day" + (days === 1 ? "" : "s") + " ago)" : " (today)");
+    }
+    if (days >= 7) {
+      if (warn) {
+        warn.style.display = "block";
+        warn.innerHTML = "<strong>It's been " + days + " day" + (days === 1 ? "" : "s") + " since your last backup.</strong> Download a fresh one, especially before clearing your browser's data.";
+      }
+      if (globalBanner) {
+        globalBanner.style.display = "block";
+        globalBanner.textContent = "⚠ Backup is " + days + " days old — tap here to download a fresh one.";
+      }
+    } else {
+      if (warn) warn.style.display = "none";
+      if (globalBanner) globalBanner.style.display = "none";
+    }
+  }
+
+  window.downloadFullBackup = async function(){
+    var data = {};
+    BACKUP_KEYS.forEach(function(key){
+      var v = safeGet(key, null);
+      if (v !== null) data[key] = v;
+    });
+    var payload = { _backup: "techrenew", version: 1, createdAt: new Date().toISOString(), data: data };
+    var json = JSON.stringify(payload, null, 2);
+    var filename = "techrenew-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+
+    function finish(){
+      safeSet("tr_last_backup_at", Date.now());
+      showNotice("Backup downloaded.");
+      renderBackupPanel();
+    }
+
+    if (window.claude && typeof window.claude.use === "function") {
+      try {
+        var downloads = await window.claude.use("downloads");
+        if (downloads) { await downloads.save({ filename: filename, data: json }); finish(); return; }
+      } catch (err) {
+        if (err && err.code === "declined") return;
+        // fall through to the standard browser download below
+      }
+    }
+
+    var blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    finish();
+  };
+
+  window.restoreFullBackup = function(btn){
+    var fileInput = document.getElementById("restoreFile");
+    if (!fileInput.files || !fileInput.files.length) { showNotice("Choose a backup file first.", true); return; }
+
+    if (btn.dataset.armed !== "1") {
+      btn.dataset.armed = "1";
+      btn.dataset.originalText = btn.textContent;
+      btn.textContent = "Confirm? This replaces everything";
+      btn._armTimer = setTimeout(function(){
+        btn.dataset.armed = "0";
+        btn.textContent = btn.dataset.originalText;
+      }, 4000);
+      return;
+    }
+    clearTimeout(btn._armTimer);
+    btn.dataset.armed = "0";
+    btn.textContent = btn.dataset.originalText || "Restore from file";
+
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var parsed;
+      try { parsed = JSON.parse(e.target.result); }
+      catch (err) { showNotice("That file isn't valid JSON.", true); return; }
+      if (!parsed || parsed._backup !== "techrenew" || !parsed.data) {
+        showNotice("That doesn't look like a techrenew backup file.", true);
+        return;
+      }
+      BACKUP_KEYS.forEach(function(key){
+        if (Object.prototype.hasOwnProperty.call(parsed.data, key)) safeSet(key, parsed.data[key]);
+      });
+      fileInput.value = "";
+      showNotice("Backup restored" + (parsed.createdAt ? " — from " + new Date(parsed.createdAt).toLocaleString("en-US") : "") + ".");
+      renderLots();
+      renderOffers();
+      renderCustomers();
+      renderEmailLog();
+      renderBackupPanel();
+    };
+    reader.onerror = function(){ showNotice("Couldn't read that file.", true); };
+    reader.readAsText(fileInput.files[0]);
   };
 
 })();
