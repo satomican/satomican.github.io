@@ -139,8 +139,10 @@
 <div class="wrap">
   <div class="tabs2" id="mainTabs">
     <button class="tab2 active" data-panel="panelLots">Manage lots</button>
+    <button class="tab2" data-panel="panelCategories">Categories</button>
     <button class="tab2" data-panel="panelOffers">Offers</button>
     <button class="tab2" data-panel="panelCustomers">Customers</button>
+    <button class="tab2" data-panel="panelAlerts">Lot alerts</button>
     <button class="tab2" data-panel="panelEmail">Email log</button>
     <button class="tab2" data-panel="panelMessages">Messages</button>
     <button class="tab2" data-panel="panelBackup">Backup</button>
@@ -152,13 +154,7 @@
       <h3 style="font-size:18px;margin-bottom:10px;">Add a new lot</h3>
       <div class="lot-fields">
         <div class="field"><label>Category</label>
-          <select id="newCat">
-            <option value="desktop">Desktop</option>
-            <option value="laptop">Laptop</option>
-            <option value="server">Server</option>
-            <option value="memory">Memory</option>
-            <option value="power">Power</option>
-          </select>
+          <select id="newCat"></select>
         </div>
         <div class="field"><label>Grade</label>
           <select id="newGrade">
@@ -181,13 +177,22 @@
 
     <div class="tabs2" id="catFilterTabs">
       <button class="tab2 active" data-cat="all">All</button>
-      <button class="tab2" data-cat="desktop">Desktop</button>
-      <button class="tab2" data-cat="laptop">Laptop</button>
-      <button class="tab2" data-cat="server">Server</button>
-      <button class="tab2" data-cat="memory">Memory</button>
-      <button class="tab2" data-cat="power">Power</button>
     </div>
     <div id="lotList"></div>
+  </section>
+
+  <!-- ===== CATEGORIES PANEL ===== -->
+  <section id="panelCategories" class="panel">
+    <div class="card2">
+      <h3 style="font-size:18px;margin-bottom:10px;">Add a category</h3>
+      <div class="lot-fields">
+        <div class="field"><label>Name</label><input id="newCatName" maxlength="60" placeholder="e.g. Networking"></div>
+        <div class="field"><label>ID (used inside the site; can't be changed later)</label><input id="newCatSlug" maxlength="40" placeholder="auto from the name"></div>
+      </div>
+      <div style="margin-top:12px;"><button class="btn btn-accent" id="addCatBtn" onclick="addCategory()">Add category</button></div>
+    </div>
+    <div id="categoryList"></div>
+    <p class="fine">Use ↑ ↓ to set the order categories appear on the site. A category can only be deleted when it has no lots — move its lots to another category first (Manage lots → Category → Save).</p>
   </section>
 
   <!-- ===== OFFERS PANEL ===== -->
@@ -204,10 +209,23 @@
     <div id="customerList"></div>
   </section>
 
+  <!-- ===== LOT ALERTS PANEL ===== -->
+  <section id="panelAlerts" class="panel">
+    <div class="card2">
+      <p style="font-size:13px;color:var(--text-muted);margin:0;">Pick the open lots you want to announce, then press <strong>Send alert</strong>. Every customer who turned on new-lot alerts gets one email listing all the lots you picked.</p>
+      <div id="alertSubCount" style="font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div id="alertLotList"></div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-accent" id="sendAlertBtn" onclick="sendLotAlert(this)">Send alert</button>
+      <span id="alertSelCount" style="font-size:12.5px;color:var(--text-muted);"></span>
+    </div>
+  </section>
+
   <!-- ===== EMAIL LOG PANEL ===== -->
   <section id="panelEmail" class="panel">
     <div class="card2">
-      <p style="font-size:13px;color:var(--text-muted);">Emails sent automatically when an offer comes in, or is accepted or declined (latest 200).</p>
+      <p style="font-size:13px;color:var(--text-muted);">Emails sent automatically when an offer comes in, is accepted or declined, or a new lot is posted (latest 200).</p>
     </div>
     <div id="emailLog" class="card2"></div>
   </section>
@@ -258,7 +276,7 @@
   }
 
   var GRADE_LABEL = { A:"Grade A · Like new", B:"Grade B · Light wear", C:"Grade C · Functional" };
-  var CAT_LABEL = { desktop:"Desktop", laptop:"Laptop", server:"Server", memory:"Memory", power:"Power" };
+  var CAT_LABEL = {};   // slug → name, filled from the categories table by loadCategories()
 
   function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   var escapeAttr = escapeHtml;
@@ -319,9 +337,11 @@
     Array.prototype.forEach.call(document.querySelectorAll("#mainTabs .tab2"), function(b){ b.classList.toggle("active", b === btn); });
     Array.prototype.forEach.call(document.querySelectorAll(".panel"), function(p){ p.classList.toggle("active", p.id === btn.dataset.panel); });
     if (btn.dataset.panel === "panelLots") renderLots();
+    if (btn.dataset.panel === "panelCategories") renderCategories();
     if (btn.dataset.panel === "panelOffers") renderOffers();
     if (btn.dataset.panel === "panelCustomers") renderCustomers();
     if (btn.dataset.panel === "panelEmail") renderEmailLog();
+    if (btn.dataset.panel === "panelAlerts") renderAlerts();
     if (btn.dataset.panel === "panelMessages") renderMessages();
   });
 
@@ -333,9 +353,143 @@
     drawLots();
   });
 
-  function boot(){
+  async function boot(){
+    await loadCategories();
     renderLots();
   }
+
+  /* ---- categories (public.categories: slug, name, sort_order) ---- */
+  var CATEGORIES = [];
+
+  async function loadCategories(){
+    var r = await sb.from("categories").select("slug, name, sort_order").order("sort_order").order("name");
+    if (r.error) { showNotice("Couldn't load categories: " + r.error.message, true); return false; }
+    CATEGORIES = r.data;
+    CAT_LABEL = {};
+    CATEGORIES.forEach(function(c){ CAT_LABEL[c.slug] = c.name; });
+    fillCategoryControls();
+    return true;
+  }
+
+  // Refresh every place that lists categories: the "Add a new lot" select and the filter tabs.
+  function fillCategoryControls(){
+    var sel = document.getElementById("newCat");
+    var keep = sel.value;
+    sel.innerHTML = CATEGORIES.map(function(c){ return '<option value="' + escapeAttr(c.slug) + '">' + escapeHtml(c.name) + '</option>'; }).join("");
+    if (CAT_LABEL[keep]) sel.value = keep;
+
+    if (activeCat !== "all" && !CAT_LABEL[activeCat]) activeCat = "all";
+    document.getElementById("catFilterTabs").innerHTML =
+      '<button class="tab2' + (activeCat === "all" ? ' active' : '') + '" data-cat="all">All</button>' +
+      CATEGORIES.map(function(c){
+        return '<button class="tab2' + (activeCat === c.slug ? ' active' : '') + '" data-cat="' + escapeAttr(c.slug) + '">' + escapeHtml(c.name) + '</button>';
+      }).join("");
+  }
+
+  function slugify(s){
+    return String(s).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  }
+  document.getElementById("newCatName").addEventListener("input", function(){
+    document.getElementById("newCatSlug").placeholder = slugify(this.value) || "auto from the name";
+  });
+
+  async function renderCategories(){
+    var wrap = document.getElementById("categoryList");
+    wrap.innerHTML = '<div class="empty">Loading…</div>';
+    var results = await Promise.all([ loadCategories(), sb.from("lots").select("category") ]);
+    if (!results[0]) { wrap.innerHTML = '<div class="empty">Couldn\'t load categories.</div>'; return; }
+    var counts = {};
+    (results[1].data || []).forEach(function(l){ counts[l.category] = (counts[l.category] || 0) + 1; });
+    if (!CATEGORIES.length) { wrap.innerHTML = '<div class="empty">No categories yet — add one above.</div>'; return; }
+    wrap.innerHTML = CATEGORIES.map(function(c, i){
+      var n = counts[c.slug] || 0;
+      return '<div class="lot-row" style="align-items:center;" data-cat-row="' + escapeAttr(c.slug) + '">' +
+        '<div style="display:flex;flex-direction:column;gap:4px;flex:none;">' +
+          '<button class="btn btn-sm" title="Move up"' + (i === 0 ? ' disabled' : '') + ' onclick="moveCategory(\'' + c.slug + '\',-1)">&uarr;</button>' +
+          '<button class="btn btn-sm" title="Move down"' + (i === CATEGORIES.length - 1 ? ' disabled' : '') + ' onclick="moveCategory(\'' + c.slug + '\',1)">&darr;</button>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div class="field"><label>Name</label><input data-f="name" maxlength="60" value="' + escapeAttr(c.name) + '"></div>' +
+          '<div class="offer-meta">ID: <span class="mono">' + escapeHtml(c.slug) + '</span> · ' + n + ' lot' + (n === 1 ? '' : 's') + '</div>' +
+        '</div>' +
+        '<div class="lot-actions">' +
+          '<button class="btn btn-sm btn-accent" onclick="saveCategory(\'' + c.slug + '\')">Save</button>' +
+          '<button class="btn btn-sm btn-danger"' + (n ? ' disabled title="Move or delete its lots first"' : '') + ' onclick="deleteCategory(\'' + c.slug + '\', this)">Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  window.addCategory = async function(){
+    var name = document.getElementById("newCatName").value.trim();
+    var slug = document.getElementById("newCatSlug").value.trim().toLowerCase() || slugify(name);
+    if (!name) { showNotice("Enter a category name.", true); return; }
+    if (!/^[a-z0-9-]{1,40}$/.test(slug)) { showNotice("The ID can only use lowercase letters, numbers and -.", true); return; }
+    if (CAT_LABEL[slug]) { showNotice("A category with the ID \"" + slug + "\" already exists.", true); return; }
+    var maxOrder = CATEGORIES.reduce(function(m, c){ return Math.max(m, c.sort_order); }, 0);
+    var btn = document.getElementById("addCatBtn");
+    btn.disabled = true;
+    var r = await sb.from("categories").insert({ slug: slug, name: name, sort_order: maxOrder + 1 });
+    btn.disabled = false;
+    if (r.error) {
+      showNotice(r.error.code === "23505" ? "A category with the ID \"" + slug + "\" already exists." : "Couldn't add the category: " + r.error.message, true);
+      return;
+    }
+    document.getElementById("newCatName").value = "";
+    document.getElementById("newCatSlug").value = "";
+    document.getElementById("newCatSlug").placeholder = "auto from the name";
+    showNotice("Category added: " + name);
+    renderCategories();
+  };
+
+  window.saveCategory = async function(slug){
+    var row = document.querySelector('[data-cat-row="' + slug + '"]');
+    var name = row ? row.querySelector('[data-f="name"]').value.trim() : "";
+    if (!name) { showNotice("The name can't be empty.", true); return; }
+    var r = await sb.from("categories").update({ name: name }).eq("slug", slug);
+    if (r.error) { showNotice("Couldn't save: " + r.error.message, true); return; }
+    showNotice("Saved.");
+    renderCategories();
+  };
+
+  window.moveCategory = async function(slug, dir){
+    var order = CATEGORIES.map(function(c){ return c.slug; });
+    var i = order.indexOf(slug), j = i + dir;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    order[i] = order[j]; order[j] = slug;
+    // Renumber 1..n and save only the rows whose position changed.
+    var updates = [];
+    order.forEach(function(s, idx){
+      var c = CATEGORIES.filter(function(x){ return x.slug === s; })[0];
+      if (c.sort_order !== idx + 1) updates.push(sb.from("categories").update({ sort_order: idx + 1 }).eq("slug", s));
+    });
+    var results = await Promise.all(updates);
+    var failed = results.filter(function(x){ return x.error; })[0];
+    if (failed) showNotice("Couldn't reorder: " + failed.error.message, true);
+    renderCategories();
+  };
+
+  window.deleteCategory = async function(slug, btn){
+    if (btn && btn.dataset.armed !== "1") {
+      btn.dataset.armed = "1";
+      btn.dataset.originalText = btn.textContent;
+      btn.textContent = "Confirm?";
+      btn._armTimer = setTimeout(function(){ btn.dataset.armed = "0"; btn.textContent = btn.dataset.originalText; }, 3000);
+      return;
+    }
+    if (btn) { clearTimeout(btn._armTimer); btn.disabled = true; }
+    var r = await sb.from("categories").delete().eq("slug", slug);
+    if (r.error) {
+      showNotice(r.error.code === "23503"
+        ? "This category still has lots. Move them to another category first."
+        : "Couldn't delete: " + r.error.message, true);
+      renderCategories();
+      return;
+    }
+    showNotice("Category deleted.");
+    renderCategories();
+  };
 
   /* ---- lots ---- */
   var LOTS = [];
@@ -367,7 +521,8 @@
   function findLot(id){ return LOTS.filter(function(it){ return it.id === id; })[0]; }
 
   function genId(cat){
-    var prefix = { desktop:"TR-DSK", laptop:"TR-LAP", server:"TR-SRV", memory:"TR-MEM", power:"TR-PWR" }[cat] || "TR-GEN";
+    var prefix = { desktop:"TR-DSK", laptop:"TR-LAP", server:"TR-SRV", memory:"TR-MEM", power:"TR-PWR" }[cat] ||
+      ("TR-" + (cat.replace(/[^a-z0-9]/g, "").slice(0, 3).toUpperCase() || "GEN"));
     return prefix + "-" + Math.floor(1000 + Math.random()*9000);
   }
 
@@ -540,6 +695,7 @@
       spec: spec || null,
       grade: row.querySelector('[data-f="grade"]').value,
       asking_price: asking,
+      category: row.querySelector('[data-f="category"]').value,
       status: row.querySelector('[data-f="status"]').value
     }).eq("id", id);
     if (r.error) { showNotice("Couldn't save: " + r.error.message, true); return; }
@@ -611,6 +767,9 @@
               ['A','B','C'].map(function(g){ return '<option value="' + g + '"' + (g === it.grade ? ' selected' : '') + '>' + GRADE_LABEL[g] + '</option>'; }).join("") +
             '</select></div>' +
             '<div class="field"><label>Asking price (USD)</label><input data-f="asking" type="number" min="0" step="1" value="' + it.asking + '"></div>' +
+            '<div class="field"><label>Category</label><select data-f="category">' +
+              CATEGORIES.map(function(c){ return '<option value="' + escapeAttr(c.slug) + '"' + (c.slug === it.cat ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>'; }).join("") +
+            '</select></div>' +
             '<div class="field"><label>Status</label><select data-f="status">' +
               '<option value="open"' + (it.status === "open" ? ' selected' : '') + '>Open — accepting offers</option>' +
               '<option value="closed"' + (it.status === "closed" ? ' selected' : '') + '>Closed — hidden from the site</option>' +
@@ -741,8 +900,84 @@
     }).join("");
   }
 
+  /* ---- lot alerts (admin chooses when to email subscribers) ---- */
+  var alertSubscribers = 0;
+
+  function alertSelectedIds(){
+    return Array.prototype.map.call(document.querySelectorAll("#alertLotList input[type=checkbox]:checked"), function(cb){ return cb.value; });
+  }
+  function updateAlertSelection(){
+    var n = alertSelectedIds().length;
+    var btn = document.getElementById("sendAlertBtn");
+    btn.disabled = !n || !alertSubscribers;
+    btn.dataset.armed = "0";
+    btn.textContent = "Send alert";
+    document.getElementById("alertSelCount").textContent = n ? n + " lot" + (n === 1 ? "" : "s") + " selected (max 20)" : "No lots selected";
+  }
+
+  async function renderAlerts(){
+    var wrap = document.getElementById("alertLotList");
+    wrap.innerHTML = '<div class="empty">Loading…</div>';
+    var results = await Promise.all([
+      sb.from("lots").select("id, category, title, asking_price, created_at, alert_sent_at").eq("status", "open").order("created_at", { ascending: false }),
+      sb.from("profiles").select("id", { count: "exact", head: true }).eq("notify_new_lots", true)
+    ]);
+    var lotsRes = results[0], subsRes = results[1];
+    if (lotsRes.error) {
+      wrap.innerHTML = '<div class="empty">Couldn\'t load lots' +
+        (lotsRes.error.code === "42703" ? ' — run <span class="mono">05_new_lot_alerts.sql</span> in the Supabase SQL Editor.' : ': ' + escapeHtml(lotsRes.error.message)) + '</div>';
+      updateAlertSelection();
+      return;
+    }
+    alertSubscribers = subsRes.error ? 0 : (subsRes.count || 0);
+    document.getElementById("alertSubCount").innerHTML = alertSubscribers
+      ? '<strong>' + alertSubscribers + '</strong> customer' + (alertSubscribers === 1 ? ' has' : 's have') + ' new-lot alerts turned on.'
+      : '<span style="color:var(--warn);">No customers have new-lot alerts turned on yet, so there\'s nobody to email.</span>';
+    if (!lotsRes.data.length) { wrap.innerHTML = '<div class="empty">No open lots.</div>'; updateAlertSelection(); return; }
+    wrap.innerHTML = lotsRes.data.map(function(l){
+      var sent = l.alert_sent_at
+        ? '<span class="badge badge-good">Alert sent ' + new Date(l.alert_sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + '</span>'
+        : '<span class="badge badge-warn">Not announced yet</span>';
+      return '<label class="lot-row" style="align-items:center;cursor:pointer;">' +
+        '<input type="checkbox" value="' + escapeAttr(l.id) + '" style="width:18px;height:18px;flex:none;accent-color:var(--accent);">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:600;">' + escapeHtml(l.title) + '</div>' +
+          '<div class="offer-meta">' + escapeHtml(l.id) + ' · ' + escapeHtml(CAT_LABEL[l.category] || l.category) + ' · $' + l.asking_price +
+            ' · added ' + new Date(l.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + '</div>' +
+        '</div>' + sent +
+      '</label>';
+    }).join("");
+    Array.prototype.forEach.call(wrap.querySelectorAll("input[type=checkbox]"), function(cb){ cb.addEventListener("change", updateAlertSelection); });
+    updateAlertSelection();
+  }
+
+  window.sendLotAlert = async function(btn){
+    var ids = alertSelectedIds();
+    if (!ids.length) { showNotice("Tick at least one lot first.", true); return; }
+    if (ids.length > 20) { showNotice("Pick 20 lots or fewer per alert.", true); return; }
+    if (btn.dataset.armed !== "1") {
+      btn.dataset.armed = "1";
+      btn.textContent = "Confirm? Emails " + alertSubscribers + " customer" + (alertSubscribers === 1 ? "" : "s");
+      clearTimeout(btn._armTimer);
+      btn._armTimer = setTimeout(function(){ btn.dataset.armed = "0"; btn.textContent = "Send alert"; }, 4000);
+      return;
+    }
+    clearTimeout(btn._armTimer);
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+    var r = await sb.functions.invoke("send-email", { body: { action: "send_lot_alert", lot_ids: ids } });
+    if (r.error) {
+      var msg = r.error.message || "Unknown error";
+      try { var ctx = await r.error.context.json(); if (ctx && ctx.error) msg = ctx.error; } catch (e) { /* keep generic message */ }
+      showNotice("Alert not sent: " + msg, true);
+    } else {
+      showNotice("Alert sent to " + r.data.subscribers + " customer" + (r.data.subscribers === 1 ? "" : "s") + " (" + r.data.lots + " lot" + (r.data.lots === 1 ? "" : "s") + ").");
+    }
+    renderAlerts();
+  };
+
   /* ---- email log (written by the send-email Edge Function) ---- */
-  var EMAIL_KIND_LABEL = { new_offer: "New offer → admin", offer_accepted: "Offer accepted → buyer", offer_declined: "Offer declined → buyer" };
+  var EMAIL_KIND_LABEL = { new_offer: "New offer → admin", offer_accepted: "Offer accepted → buyer", offer_declined: "Offer declined → buyer", new_lot: "New lot alert → subscribers" };
 
   async function renderEmailLog(){
     var wrap = document.getElementById("emailLog");
