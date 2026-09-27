@@ -140,6 +140,7 @@
     <button class="tab2 active" data-panel="panelLots">Manage lots</button>
     <button class="tab2" data-panel="panelOffers">Offers</button>
     <button class="tab2" data-panel="panelCustomers">Customers</button>
+    <button class="tab2" data-panel="panelEmail">Email log</button>
     <button class="tab2" data-panel="panelMessages">Messages</button>
     <button class="tab2" data-panel="panelBackup">Backup</button>
   </div>
@@ -200,6 +201,14 @@
       <button class="btn btn-sm btn-accent" onclick="downloadCustomersCSV()">Download CSV</button>
     </div>
     <div id="customerList"></div>
+  </section>
+
+  <!-- ===== EMAIL LOG PANEL ===== -->
+  <section id="panelEmail" class="panel">
+    <div class="card2">
+      <p style="font-size:13px;color:var(--text-muted);">Emails sent automatically when an offer comes in, or is accepted or declined (latest 200).</p>
+    </div>
+    <div id="emailLog" class="card2"></div>
   </section>
 
   <!-- ===== CONTACT MESSAGES PANEL ===== -->
@@ -311,6 +320,7 @@
     if (btn.dataset.panel === "panelLots") renderLots();
     if (btn.dataset.panel === "panelOffers") renderOffers();
     if (btn.dataset.panel === "panelCustomers") renderCustomers();
+    if (btn.dataset.panel === "panelEmail") renderEmailLog();
     if (btn.dataset.panel === "panelMessages") renderMessages();
   });
 
@@ -662,17 +672,35 @@
         '<div class="offer-meta">' + new Date(o.submitted_at).toLocaleString("en-US") + '</div>' +
         (o.status === "Pending review" ?
           '<div class="offer-actions">' +
-            '<button class="btn btn-sm btn-accent" onclick="decideOffer(\'' + o.id + '\',\'Accepted\')">Accept</button>' +
-            '<button class="btn btn-sm btn-danger" onclick="decideOffer(\'' + o.id + '\',\'Declined\')">Decline</button>' +
+            '<button class="btn btn-sm btn-accent" onclick="decideOffer(\'' + o.id + '\',\'Accepted\', this)">Accept</button>' +
+            '<button class="btn btn-sm btn-danger" onclick="decideOffer(\'' + o.id + '\',\'Declined\', this)">Decline</button>' +
           '</div>' : '') +
       '</div>';
     }).join("");
   }
 
-  window.decideOffer = async function(id, status){
+  window.decideOffer = async function(id, status, btn){
+    // Accepting is final (the lot closes), so ask for a second click first.
+    if (status === "Accepted" && btn && btn.dataset.armed !== "1") {
+      btn.dataset.armed = "1";
+      btn.dataset.originalText = btn.textContent;
+      btn.textContent = "Confirm? Closes the lot";
+      btn._armTimer = setTimeout(function(){
+        btn.dataset.armed = "0";
+        btn.textContent = btn.dataset.originalText;
+      }, 3000);
+      return;
+    }
+    if (btn) { clearTimeout(btn._armTimer); btn.disabled = true; }
     var r = await sb.from("offers").update({ status: status }).eq("id", id);
-    if (r.error) { showNotice("Couldn't update the offer: " + r.error.message, true); return; }
-    showNotice("Offer " + status.toLowerCase() + ".");
+    if (r.error) {
+      showNotice("Couldn't update the offer: " + r.error.message, true);
+      renderOffers();
+      return;
+    }
+    showNotice(status === "Accepted"
+      ? "Offer accepted — the lot is now closed and any other pending offers on it were declined."
+      : "Offer declined.");
     renderOffers();
   };
 
@@ -708,6 +736,31 @@
         '<span class="badge ' + (c.notifyNewLots ? "badge-good" : "badge-warn") + '">' + (c.notifyNewLots ? "Subscribed" : "Not subscribed") + '</span></div>' +
         '<div class="offer-meta">' + escapeHtml(c.email) + '</div>' +
         (addressLine ? '<div class="offer-meta" style="margin-top:4px;">' + escapeHtml(addressLine) + '</div>' : '') +
+        '</div>';
+    }).join("");
+  }
+
+  /* ---- email log (written by the send-email Edge Function) ---- */
+  var EMAIL_KIND_LABEL = { new_offer: "New offer → admin", offer_accepted: "Offer accepted → buyer", offer_declined: "Offer declined → buyer" };
+
+  async function renderEmailLog(){
+    var wrap = document.getElementById("emailLog");
+    wrap.innerHTML = '<div class="empty">Loading…</div>';
+    var r = await sb.from("email_log").select("*").order("created_at", { ascending: false }).limit(200);
+    if (r.error) {
+      wrap.innerHTML = '<div class="empty">Couldn\'t load the email log' +
+        (r.error.code === "42P01" || r.error.code === "PGRST205" ? ' — run <span class="mono">04_email_log.sql</span> in the Supabase SQL Editor.' : ': ' + escapeHtml(r.error.message)) + '</div>';
+      return;
+    }
+    if (!r.data.length) { wrap.innerHTML = '<div class="empty">No emails sent yet.</div>'; return; }
+    wrap.innerHTML = r.data.map(function(l){
+      var cls = l.status === "sent" ? "badge-good" : l.status === "failed" ? "badge-bad" : "badge-warn";
+      return '<div class="log-row">' +
+        '<div style="display:flex;justify-content:space-between;gap:10px;"><span>' + escapeHtml(l.subject || EMAIL_KIND_LABEL[l.kind] || l.kind) + '</span>' +
+        '<span class="badge ' + cls + '">' + escapeHtml(l.status) + '</span></div>' +
+        '<div class="log-meta">' + escapeHtml(EMAIL_KIND_LABEL[l.kind] || l.kind) +
+          (l.to_email ? ' · to ' + escapeHtml(l.to_email) : '') + ' · ' + new Date(l.created_at).toLocaleString("en-US") + '</div>' +
+        (l.error ? '<div class="log-meta" style="color:var(--bad);">' + escapeHtml(l.error) + '</div>' : '') +
         '</div>';
     }).join("");
   }
