@@ -79,6 +79,10 @@
   .field textarea { min-height: 46px; resize: vertical; }
   .lot-actions { display: flex; flex-direction: column; gap: 6px; flex: none; }
   .id-tag { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+  .list-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 12px; font-size: 12.5px; color: var(--text-muted); }
+  .list-controls label { display: flex; align-items: center; gap: 6px; }
+  .list-controls select { border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 6px 8px; font-size: 13px; border-radius: 4px; }
+  .list-count { margin-left: auto; font-family: "IBM Plex Mono", monospace; }
 
   .offer-card { border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px; background: var(--surface); }
   .offer-top { display: flex; justify-content: space-between; gap: 10px; }
@@ -178,6 +182,25 @@
     <div class="tabs2" id="catFilterTabs">
       <button class="tab2 active" data-cat="all">All</button>
     </div>
+    <div class="list-controls">
+      <label for="lotStatusFilter">Status
+        <select id="lotStatusFilter">
+          <option value="all">All</option>
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+        </select>
+      </label>
+      <label for="lotSort">Sort
+        <select id="lotSort">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="price_desc">Price: high to low</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="title">Title A–Z</option>
+        </select>
+      </label>
+      <span class="list-count" id="lotCount"></span>
+    </div>
     <div id="lotList"></div>
   </section>
 
@@ -197,6 +220,25 @@
 
   <!-- ===== OFFERS PANEL ===== -->
   <section id="panelOffers" class="panel">
+    <div class="list-controls">
+      <label for="offerStatusFilter">Status
+        <select id="offerStatusFilter">
+          <option value="all">All</option>
+          <option value="Pending review">Pending review</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Declined">Declined</option>
+        </select>
+      </label>
+      <label for="offerSort">Sort
+        <select id="offerSort">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="amount_desc">Amount: high to low</option>
+          <option value="amount_asc">Amount: low to high</option>
+        </select>
+      </label>
+      <span class="list-count" id="offerCount"></span>
+    </div>
     <div id="offerList"></div>
   </section>
 
@@ -505,7 +547,7 @@
       var inv = Array.isArray(x.lot_inventories) ? x.lot_inventories[0] : x.lot_inventories;
       return {
         id: x.id, cat: x.category, title: x.title, spec: x.spec || "", grade: x.grade,
-        asking: x.asking_price, status: x.status, images: imgs,
+        asking: x.asking_price, status: x.status, created: x.created_at, images: imgs,
         inventory: inv ? { fileName: inv.file_name, items: Math.max(0, (inv.data || []).length - 1) } : null
       };
     });
@@ -744,10 +786,32 @@
     renderLots();
   };
 
+  // Shared sort helper for the lot and offer lists.
+  function sortBy(list, mode, fields){
+    var t = function(x){ return new Date(x[fields.date]).getTime(); };
+    return list.slice().sort(function(a, b){
+      if (mode === "oldest") return t(a) - t(b);
+      if (mode === "price_desc" || mode === "amount_desc") return (b[fields.num] - a[fields.num]) || (t(b) - t(a));
+      if (mode === "price_asc" || mode === "amount_asc") return (a[fields.num] - b[fields.num]) || (t(b) - t(a));
+      if (mode === "title") return String(a.title).localeCompare(String(b.title), "en", { sensitivity: "base" });
+      return t(b) - t(a);   // newest
+    });
+  }
+  function shortDate(d){ return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+
+  ["lotStatusFilter", "lotSort"].forEach(function(id){ document.getElementById(id).addEventListener("change", drawLots); });
+
   function drawLots(){
-    var list = LOTS.filter(function(it){ return activeCat === "all" || it.cat === activeCat; });
+    var statusFilter = document.getElementById("lotStatusFilter").value;
+    var inCat = LOTS.filter(function(it){ return activeCat === "all" || it.cat === activeCat; });
+    var list = sortBy(inCat.filter(function(it){ return statusFilter === "all" || it.status === statusFilter; }),
+                      document.getElementById("lotSort").value, { date: "created", num: "asking" });
     var wrap = document.getElementById("lotList");
-    if (!list.length) { wrap.innerHTML = '<div class="empty">No lots in this category yet.</div>'; return; }
+    document.getElementById("lotCount").textContent = list.length + " of " + inCat.length + " lot" + (inCat.length === 1 ? "" : "s");
+    if (!list.length) {
+      wrap.innerHTML = '<div class="empty">' + (inCat.length ? "No " + statusFilter + " lots here." : "No lots in this category yet.") + '</div>';
+      return;
+    }
     wrap.innerHTML = list.map(function(it){
       var photos = it.images;
       var thumb = photos.length ? '<img class="thumb" src="' + escapeAttr(photos[0].url) + '" alt="">' : '<div class="thumb"></div>';
@@ -759,6 +823,7 @@
         thumb +
         '<div style="flex:1;">' +
           '<div class="id-tag mono">' + escapeHtml(it.id) + ' · ' + escapeHtml(CAT_LABEL[it.cat] || it.cat) +
+            ' · added ' + shortDate(it.created) +
             (it.status === "closed" ? ' · <span style="color:var(--bad);">Closed</span>' : '') + '</div>' +
           '<div class="lot-fields">' +
             '<div class="field" style="grid-column:1/-1;"><label>Title</label><input data-f="title" maxlength="200" value="' + escapeAttr(it.title) + '"></div>' +
@@ -817,10 +882,27 @@
       sb.from("offers").select("id, lot_id, user_id, amount, note, status, submitted_at, lots(title)").order("submitted_at", { ascending: false }),
       loadEmails()
     ]);
-    var r = results[0], emails = results[1];
+    var r = results[0];
     if (r.error) { wrap.innerHTML = '<div class="empty">Couldn\'t load offers: ' + escapeHtml(r.error.message) + '</div>'; return; }
-    if (!r.data.length) { wrap.innerHTML = '<div class="empty">No offers yet.</div>'; return; }
-    wrap.innerHTML = (emails ? '' : EMAIL_HINT) + r.data.map(function(o){
+    OFFERS = r.data;
+    OFFER_EMAILS = results[1];
+    drawOffers();
+  }
+
+  var OFFERS = [];
+  var OFFER_EMAILS = null;
+  ["offerStatusFilter", "offerSort"].forEach(function(id){ document.getElementById(id).addEventListener("change", drawOffers); });
+
+  function drawOffers(){
+    var wrap = document.getElementById("offerList");
+    var emails = OFFER_EMAILS;
+    var statusFilter = document.getElementById("offerStatusFilter").value;
+    var list = sortBy(OFFERS.filter(function(o){ return statusFilter === "all" || o.status === statusFilter; }),
+                      document.getElementById("offerSort").value, { date: "submitted_at", num: "amount" });
+    document.getElementById("offerCount").textContent = list.length + " of " + OFFERS.length + " offer" + (OFFERS.length === 1 ? "" : "s");
+    if (!OFFERS.length) { wrap.innerHTML = '<div class="empty">No offers yet.</div>'; return; }
+    if (!list.length) { wrap.innerHTML = '<div class="empty">No offers with status "' + escapeHtml(statusFilter) + '".</div>'; return; }
+    wrap.innerHTML = (emails ? '' : EMAIL_HINT) + list.map(function(o){
       var cls = o.status === "Accepted" ? "badge-good" : o.status === "Declined" ? "badge-bad" : "badge-warn";
       var who = (emails && emails[o.user_id]) || ("customer " + o.user_id.slice(0, 8));
       var title = (o.lots && o.lots.title) || o.lot_id;
