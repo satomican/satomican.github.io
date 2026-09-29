@@ -914,27 +914,52 @@
         '<div class="offer-meta">' + new Date(o.submitted_at).toLocaleString("en-US") + '</div>' +
         (o.status === "Pending review" ?
           '<div class="offer-actions">' +
-            '<button class="btn btn-sm btn-accent" onclick="decideOffer(\'' + o.id + '\',\'Accepted\', this)">Accept</button>' +
+            '<button class="btn btn-sm btn-accent" onclick="toggleAcceptForm(\'' + o.id + '\', true)">Accept…</button>' +
             '<button class="btn btn-sm btn-danger" onclick="decideOffer(\'' + o.id + '\',\'Declined\', this)">Decline</button>' +
+          '</div>' +
+          // Accepting: paste the Stripe payment links that go in the buyer's "offer accepted" email.
+          '<div id="acceptForm-' + o.id + '" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">' +
+            '<div class="field"><label>Stripe payment link — bank transfer (ACH), ' + escapeHtml(fmtMoney(o.amount)) + '</label>' +
+              '<input type="url" id="payAch-' + o.id + '" placeholder="https://buy.stripe.com/…"></div>' +
+            '<div class="field" style="margin-top:8px;"><label>Stripe payment link — credit card, ' + escapeHtml(fmtMoney(cardTotal(o.amount), 2)) + ' (incl. 2.9% + $0.30)</label>' +
+              '<input type="url" id="payCard-' + o.id + '" placeholder="https://buy.stripe.com/…"></div>' +
+            '<div class="field-hint">Leave a link empty to leave that payment option out of the email. With both empty, the email says payment instructions will follow.</div>' +
+            '<div class="offer-actions">' +
+              '<button class="btn btn-sm btn-accent" onclick="decideOffer(\'' + o.id + '\',\'Accepted\', this)">Accept &amp; email buyer — closes the lot</button>' +
+              '<button class="btn btn-sm" onclick="toggleAcceptForm(\'' + o.id + '\', false)">Cancel</button>' +
+            '</div>' +
           '</div>' : '') +
       '</div>';
     }).join("");
   }
 
+  function fmtMoney(n, decimals){
+    return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: decimals || 0, maximumFractionDigits: decimals || 0 });
+  }
+  // Card price with Stripe's 2.9% + $0.30 passed through (same formula as the send-email function).
+  function cardTotal(amount){ return Math.ceil(((amount + 0.30) / (1 - 0.029)) * 100) / 100; }
+  function isStripeLink(v){ return /^https:\/\/([a-z0-9-]+\.)*stripe\.com(\/|$)/i.test(v); }
+
+  window.toggleAcceptForm = function(id, open){
+    document.getElementById("acceptForm-" + id).style.display = open ? "block" : "none";
+    if (open) document.getElementById("payAch-" + id).focus();
+  };
+
   window.decideOffer = async function(id, status, btn){
-    // Accepting is final (the lot closes), so ask for a second click first.
-    if (status === "Accepted" && btn && btn.dataset.armed !== "1") {
-      btn.dataset.armed = "1";
-      btn.dataset.originalText = btn.textContent;
-      btn.textContent = "Confirm? Closes the lot";
-      btn._armTimer = setTimeout(function(){
-        btn.dataset.armed = "0";
-        btn.textContent = btn.dataset.originalText;
-      }, 3000);
-      return;
+    var update = { status: status };
+    if (status === "Accepted") {
+      // The Stripe links go into the buyer's "offer accepted" email (sent by the webhook).
+      var ach = document.getElementById("payAch-" + id).value.trim();
+      var card = document.getElementById("payCard-" + id).value.trim();
+      if ((ach && !isStripeLink(ach)) || (card && !isStripeLink(card))) {
+        showNotice("Payment links must be Stripe links starting with https:// (e.g. https://buy.stripe.com/…).", true);
+        return;
+      }
+      update.payment_link_ach = ach || null;
+      update.payment_link_card = card || null;
     }
-    if (btn) { clearTimeout(btn._armTimer); btn.disabled = true; }
-    var r = await sb.from("offers").update({ status: status }).eq("id", id);
+    if (btn) btn.disabled = true;
+    var r = await sb.from("offers").update(update).eq("id", id);
     if (r.error) {
       showNotice("Couldn't update the offer: " + r.error.message, true);
       renderOffers();
@@ -1059,7 +1084,7 @@
   };
 
   /* ---- email log (written by the send-email Edge Function) ---- */
-  var EMAIL_KIND_LABEL = { new_offer: "New offer → admin", offer_accepted: "Offer accepted → buyer", offer_declined: "Offer declined → buyer", new_lot: "New lot alert → subscribers" };
+  var EMAIL_KIND_LABEL = { new_offer: "New offer → admin", offer_accepted: "Offer accepted → buyer", offer_declined: "Offer declined → buyer", new_lot: "New lot alert → subscribers", contact_message: "Contact message → admin" };
 
   async function renderEmailLog(){
     var wrap = document.getElementById("emailLog");
