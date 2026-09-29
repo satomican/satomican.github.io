@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>About us — techrenew</title>
-<meta name="description" content="techrenew is a wholesale eBay store dealing in used desktop and laptop computers, servers, and parts. We don't carry new merchandise.">
-<meta property="og:title" content="About us — techrenew">
-<meta property="og:description" content="techrenew is a wholesale eBay store dealing in used desktop and laptop computers, servers, and parts. We don't carry new merchandise.">
+<title>Shipping — techrenew</title>
+<meta name="description" content="Shipping for techrenew lots is arranged by the buyer: once payment is confirmed, you book the carrier of your choice and we have the lot ready for pickup.">
+<meta property="og:title" content="Shipping — techrenew">
+<meta property="og:description" content="Shipping for techrenew lots is arranged by the buyer: once payment is confirmed, you book the carrier of your choice and we have the lot ready for pickup.">
 <meta property="og:image" content="https://satomican.github.io/techrenew_auction/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://satomican.github.io/techrenew_auction/about.html">
+<meta property="og:url" content="https://satomican.github.io/techrenew_auction/shipping.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="techrenew">
 <meta name="twitter:card" content="summary_large_image">
@@ -58,7 +58,11 @@
 
   section.info { padding: 48px 0 60px; }
   section.info h1 { font-size: clamp(30px, 5vw, 42px); margin-bottom: 20px; }
-  section.info p { color: var(--text-muted); line-height: 1.75; margin-bottom: 14px; max-width: 640px; font-size: 15.5px; }
+  section.info p, section.info li { color: var(--text-muted); line-height: 1.75; max-width: 640px; font-size: 15.5px; }
+  section.info p { margin: 0 0 14px; }
+  section.info h2 { font-size: 24px; margin: 30px 0 10px; }
+  section.info ul { margin: 0 0 14px; padding-left: 20px; }
+  section.info strong { color: var(--text); font-weight: 600; }
 
   footer.site { border-top: 1px solid var(--border); padding: 28px 0 40px; margin-top: auto; }
   footer.site .wrap { display: flex; flex-direction: column; gap: 6px; }
@@ -89,10 +93,19 @@
 
 <main>
   <section class="info wrap">
-    <h1>About us</h1>
-    <p>techrenew is a wholesale eBay store dealing in used desktop and laptop computers, servers, and parts — including memory and power supplies. Everything we sell has been used and tested before it's listed; we don't carry new merchandise.</p>
-    <p>Each lot is posted with an asking price, but you name your own offer. We review every offer and get back to you, typically within 1–2 business days.</p>
-    <p>Have a question before you make an offer? <a href="contact.html" style="color:var(--brand-orange);font-weight:600;">Contact us</a> — we're happy to help.</p>
+    <h1>Shipping</h1>
+    <p><strong>Buyers arrange their own shipping.</strong> Shipping isn't included in the price of a lot — you choose the carrier and pay them directly, so you can use whichever service works best for you.</p>
+
+    <h2>How it works</h2>
+    <ul>
+      <li><strong>Pay for your lot.</strong> See <a href="payment.html" style="color:var(--brand-orange);font-weight:600;">Payment</a> for the options.</li>
+      <li><strong>We send the size and weight.</strong> Once your payment is confirmed, we'll email you the packed dimensions and weight of your lot.</li>
+      <li><strong>You arrange shipping.</strong> Use those to book shipping with the carrier of your choice, then send us the details.</li>
+      <li><strong>We hand it over.</strong> We'll have the lot ready for your carrier to collect.</li>
+    </ul>
+    <!-- TODO: add pickup location/hours, how long paid lots can be held, and your returns policy -->
+
+    <p>Questions about shipping? <a href="contact.html" style="color:var(--brand-orange);font-weight:600;">Contact us</a> — we're happy to help.</p>
   </section>
 </main>
 
