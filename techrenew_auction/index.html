@@ -608,6 +608,8 @@
   var CATEGORIES = [ { id: "all", label: "All lots" } ];
 
   var GRADE_LABEL = { A:"Grade A · Like new", B:"Grade B · Light wear", C:"Grade C · Functional" };
+  // Whole-dollar price with thousands separators: 2000 → "$2,000"
+  function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
   var GRADE_CLASS = { A:"badge-good", B:"badge-warn", C:"badge-bad" };
 
   function escapeAttr(s){ return String(s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
@@ -815,7 +817,7 @@
         '<div class="card-title">' + escapeHtml(it.title) + '</div>' +
         '<div class="card-spec">' + escapeHtml(it.spec) + '</div>' +
         '<div class="card-bottom">' +
-          '<div class="price-row"><div><div class="price">$' + it.asking + '</div><div class="price-label">asking price</div></div></div>' +
+          '<div class="price-row"><div><div class="price">' + money(it.asking) + '</div><div class="price-label">asking price</div></div></div>' +
           '<button class="btn btn-accent btn-block" data-offer-id="' + escapeAttr(it.id) + '">Make an offer</button>' +
         '</div>';
       grid.appendChild(card);
@@ -1188,7 +1190,7 @@
     document.getElementById("detGrade").textContent = GRADE_LABEL[item.grade];
     document.getElementById("detGrade").className = "badge " + GRADE_CLASS[item.grade];
     document.getElementById("detSpec").textContent = item.spec;
-    document.getElementById("detPrice").textContent = "$" + item.asking;
+    document.getElementById("detPrice").textContent = money(item.asking);
     document.getElementById("detOfferBtn").onclick = function(){
       closeModal("detailsOverlay");
       openOfferModal(item.id);
@@ -1234,7 +1236,7 @@
     if (!item) return;
     pendingOfferItemId = itemId;
     document.getElementById("offerItemTitle").textContent = item.title + " (" + item.id + ")";
-    document.getElementById("offerAsking").textContent = "Asking price: $" + item.asking;
+    document.getElementById("offerAsking").textContent = "Asking price: " + money(item.asking);
     document.getElementById("offerAmount").value = "";
     document.getElementById("offerNote").value = "";
     setErr("offerError", "");
@@ -1261,7 +1263,7 @@
       return;
     }
     closeModal("offerOverlay");
-    showToast("Offer sent — $" + amount + " on " + item.title + ". We'll be in touch soon.", "🚀");
+    showToast("Offer sent — " + money(amount) + " on " + item.title + ". We'll be in touch soon.", "🚀");
   };
 
   /* ---------- My offers: last 3 months, sortable, 10 per page ---------- */
@@ -1327,7 +1329,7 @@
       return heading + '<div class="offer-row">' +
         '<div class="offer-row-top"><span class="offer-title">' + escapeHtml(title) + '</span>' +
         '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
-        '<div class="offer-meta">$' + o.amount + ' · ' + d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) + '</div>' +
+        '<div class="offer-meta">' + money(o.amount) + ' · ' + d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) + '</div>' +
         (o.note ? '<div class="card-spec" style="margin-top:6px;">' + escapeHtml(o.note) + '</div>' : '') +
         '</div>';
     }).join("");

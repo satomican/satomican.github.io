@@ -909,7 +909,7 @@
       return '<div class="offer-card">' +
         '<div class="offer-top"><div><strong>' + escapeHtml(title) + '</strong><div class="offer-meta">' + escapeHtml(who) + ' · ' + escapeHtml(o.lot_id) + '</div></div>' +
         '<span class="badge ' + cls + '">' + escapeHtml(o.status) + '</span></div>' +
-        '<div class="offer-amount" style="margin-top:6px;">$' + o.amount + '</div>' +
+        '<div class="offer-amount" style="margin-top:6px;">' + fmtMoney(o.amount) + '</div>' +
         (o.note ? '<div class="offer-meta" style="margin-top:4px;">' + escapeHtml(o.note) + '</div>' : '') +
         '<div class="offer-meta">' + new Date(o.submitted_at).toLocaleString("en-US") + '</div>' +
         (o.status === "Pending review" ?
@@ -1049,7 +1049,7 @@
         '<input type="checkbox" value="' + escapeAttr(l.id) + '" style="width:18px;height:18px;flex:none;accent-color:var(--accent);">' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:600;">' + escapeHtml(l.title) + '</div>' +
-          '<div class="offer-meta">' + escapeHtml(l.id) + ' · ' + escapeHtml(CAT_LABEL[l.category] || l.category) + ' · $' + l.asking_price +
+          '<div class="offer-meta">' + escapeHtml(l.id) + ' · ' + escapeHtml(CAT_LABEL[l.category] || l.category) + ' · ' + fmtMoney(l.asking_price) +
             ' · added ' + new Date(l.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + '</div>' +
         '</div>' + sent +
       '</label>';
