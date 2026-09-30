@@ -981,7 +981,7 @@
       list: r.data.map(function(p){
         return {
           email: (emails && emails[p.id]) || "",
-          name: p.name || "", address: p.address || "", city: p.city || "", state: p.state || "",
+          name: p.name || "", company: p.company || "", address: p.address || "", city: p.city || "", state: p.state || "",
           zip: p.zip || "", country: p.country || "",
           notifyNewLots: !!p.notify_new_lots, isAdmin: !!p.is_admin
         };
@@ -1001,6 +1001,7 @@
       return '<div class="offer-card">' +
         '<div class="offer-top"><strong>' + escapeHtml(c.name || "(no name)") + (c.isAdmin ? ' <span class="badge badge-warn">Admin</span>' : '') + '</strong>' +
         '<span class="badge ' + (c.notifyNewLots ? "badge-good" : "badge-warn") + '">' + (c.notifyNewLots ? "Subscribed" : "Not subscribed") + '</span></div>' +
+        (c.company ? '<div class="offer-meta">' + escapeHtml(c.company) + '</div>' : '') +
         '<div class="offer-meta">' + escapeHtml(c.email) + '</div>' +
         (addressLine ? '<div class="offer-meta" style="margin-top:4px;">' + escapeHtml(addressLine) + '</div>' : '') +
         '</div>';

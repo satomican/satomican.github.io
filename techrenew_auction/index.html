@@ -317,6 +317,14 @@
   .offer-title { font-size: 14.5px; font-weight: 600; }
   .offer-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: "IBM Plex Mono"; }
   .my-offers-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  /* My account: "My offers" / "Profile" tabs */
+  .acct-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: -2px 0 16px; }
+  .acct-tab {
+    background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    color: var(--text-muted); padding: 9px 12px; font-size: 14px; font-weight: 600; font-family: inherit;
+  }
+  .acct-tab:hover { color: var(--text); }
+  .acct-tab.on { color: var(--text); border-bottom-color: var(--accent); }
   .sort-select {
     border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
     padding: 6px 8px; font-size: 13px; border-radius: 4px; font-family: inherit;
@@ -567,7 +575,13 @@
       <h3>My account</h3>
       <button class="close-x" onclick="closeModal('myOffersOverlay')">&times;</button>
     </div>
-    <div style="margin-bottom:18px;">
+    <div class="acct-tabs" role="tablist">
+      <button type="button" class="acct-tab" role="tab" id="acctTabOffers" aria-controls="acctPanelOffers" onclick="showAcctTab('offers')">My offers</button>
+      <button type="button" class="acct-tab" role="tab" id="acctTabProfile" aria-controls="acctPanelProfile" onclick="showAcctTab('profile')">Profile</button>
+    </div>
+    <div id="acctPanelProfile" role="tabpanel" aria-labelledby="acctTabProfile" hidden>
+      <div class="field"><label for="acctName">Name</label><input id="acctName" type="text" autocomplete="name" maxlength="120" placeholder="Your name"></div>
+      <div class="field"><label for="acctCompany">Company <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label><input id="acctCompany" type="text" autocomplete="organization" maxlength="150" placeholder="Company name"></div>
       <label style="display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:8px;">Shipping address</label>
       <div class="field"><label for="acctAddress">Street address</label><input id="acctAddress" type="text" placeholder="123 Main St"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -580,10 +594,10 @@
         <div class="field"><label for="acctCountry">Country</label><div class="cselect" id="acctCountryField"></div></div>
       </div>
       <label class="checkbox-row"><input type="checkbox" id="acctNotify"> Email me when a new lot is posted</label>
-      <button class="btn" onclick="saveAddress()">Save preferences</button>
+      <button class="btn" onclick="saveAddress()">Save profile</button>
     </div>
-    <div class="my-offers-head">
-      <h3 style="font-size:18px;">My offers</h3>
+    <div id="acctPanelOffers" role="tabpanel" aria-labelledby="acctTabOffers">
+    <div class="my-offers-head" style="justify-content:flex-end;">
       <select id="myOffersSort" class="sort-select" aria-label="Sort offers">
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
@@ -594,6 +608,7 @@
     </div>
     <div class="offers-list" id="myOffersList"></div>
     <div class="pager" id="myOffersPager"></div>
+    </div>
   </div>
 </div>
 
@@ -1125,7 +1140,17 @@
       heroCreateBtn.style.display = "inline-block";
     }
   }
-  document.getElementById("myOffersBtn").onclick = function(){ renderMyOffers(); fillAddressFields(); openModal("myOffersOverlay"); };
+  // My account modal: "My offers" and "Profile" (address + alerts) tabs
+  window.showAcctTab = function(name){
+    ["offers", "profile"].forEach(function(t){
+      var on = t === name, key = t === "offers" ? "Offers" : "Profile";
+      var tab = document.getElementById("acctTab" + key);
+      tab.classList.toggle("on", on);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+      document.getElementById("acctPanel" + key).hidden = !on;
+    });
+  };
+  document.getElementById("myOffersBtn").onclick = function(){ renderMyOffers(); fillAddressFields(); showAcctTab("offers"); openModal("myOffersOverlay"); };
   updateAccountUI();
 
   if (sb) {
@@ -1145,6 +1170,8 @@
 
   function fillAddressFields(){
     var p = profile || {};
+    document.getElementById("acctName").value = p.name || (session && session.name !== session.email ? session.name : "") || "";
+    document.getElementById("acctCompany").value = p.company || "";
     document.getElementById("acctAddress").value = p.address || "";
     document.getElementById("acctCity").value = p.city || "";
     document.getElementById("acctState").setValue(p.state || "");
@@ -1157,7 +1184,11 @@
   window.saveAddress = async function(){
     if (!session || !session.id) return;
     var country = document.getElementById("acctCountry").value.trim();
+    var name = document.getElementById("acctName").value.trim();
+    if (!name) { showToast("Please enter your name.", "!"); document.getElementById("acctName").focus(); return; }
     var patch = {
+      name: name,
+      company: document.getElementById("acctCompany").value.trim() || null,
       address: document.getElementById("acctAddress").value.trim(),
       city: document.getElementById("acctCity").value.trim(),
       country: country,
@@ -1170,7 +1201,9 @@
     var res = await sb.from("profiles").update(patch).eq("id", session.id);
     if (res.error) { showToast("Couldn't save — please try again.", "!"); return; }
     profile = Object.assign({}, profile, patch);
-    showToast("Preferences saved");
+    session.name = name;   // header shows the first name
+    updateAccountUI();
+    showToast("Profile saved");
   };
 
   /* ---------- Lot details ---------- */
