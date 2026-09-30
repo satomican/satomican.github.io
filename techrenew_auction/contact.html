@@ -64,6 +64,8 @@
   section.info { padding-top: 48px; padding-bottom: 60px; }
   section.info h1 { font-size: clamp(30px, 5vw, 42px); margin-bottom: 20px; }
   section.info p { color: var(--text-muted); line-height: 1.75; margin-bottom: 14px; max-width: 620px; font-size: 15.5px; }
+  section.info h2 { font-size: 24px; margin: 34px 0 10px; }
+  section.info strong { color: var(--text); font-weight: 600; }
   .contact-email { color: var(--brand-orange); font-weight: 600; text-decoration: none; }
   .contact-email:hover { text-decoration: underline; }
 
@@ -129,6 +131,13 @@
       <div class="error-msg" id="contactError"></div>
       <button class="btn btn-accent" onclick="submitContactMessage()">Send message</button>
     </form>
+
+    <h2>Address</h2>
+    <p><strong>techrenew</strong><br>
+      12477 Broad St. SW<br>
+      Pataskala, Ohio 43062</p>
+    <p><strong>Dock hours:</strong> Monday–Friday, 8:00 am – 3:30 pm (Eastern Time)<br>
+      Buyers arrange their own shipping — see <a class="contact-email" href="shipping.html">Shipping</a> for how pickup works.</p>
   </section>
 </main>
 
