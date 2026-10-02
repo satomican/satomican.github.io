@@ -125,6 +125,26 @@
   .brand-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 0.02em; margin-top: -1px; }
 
   .header-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+  /* Signed-in button: "Name · Sign out". Long names are cut with "…"; on phones only "Sign out" shows. */
+  #acctBtn .acct-first { display: inline-block; max-width: 9em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+  @media (max-width: 520px) {
+    .header-row { gap: 10px; }
+    .header-actions { gap: 4px; }
+    .brand { gap: 8px; }
+    .brand-mark { width: 36px; height: 36px; }
+    .brand-name { font-size: 24px; }
+    #acctBtn .acct-first, #acctBtn .acct-sep { display: none; }
+  }
+  @media (max-width: 399px) {
+    .brand-mark { width: 30px; height: 30px; }
+    .brand-mark svg { width: 15px; height: 15px; }
+    .header-row { gap: 6px; }
+    .brand { gap: 6px; }
+    .brand-name { font-size: 19px; }
+    .brand-sub { font-size: 9px; }
+    #myOffersBtn { padding: 9px 6px; }
+    #acctBtn { padding: 9px 9px; }
+  }
   .btn {
     border: 1px solid var(--border); background: var(--surface);
     color: var(--text); padding: 9px 14px; font-size: 14px; font-weight: 500;
@@ -337,6 +357,13 @@
   }
   .acct-tab:hover { color: var(--text); }
   .acct-tab.on { color: var(--text); border-bottom-color: var(--accent); }
+  .acct-email-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; font-size: 14px; word-break: break-all; }
+  .acct-email-row .link-btn { display: inline; margin: 0; flex: none; }
+  .acct-sub { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; }
+  .acct-sub-sep { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .acct-note { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; word-break: break-word; }
+  .acct-note strong { color: var(--text); font-weight: 600; }
+  .acct-pending { color: var(--accent); }
   .sort-select {
     border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
     padding: 6px 8px; font-size: 13px; border-radius: 4px; font-family: inherit;
@@ -635,8 +662,12 @@
     <div class="acct-tabs" role="tablist">
       <button type="button" class="acct-tab" role="tab" id="acctTabOffers" aria-controls="acctPanelOffers" onclick="showAcctTab('offers')">My offers</button>
       <button type="button" class="acct-tab" role="tab" id="acctTabProfile" aria-controls="acctPanelProfile" onclick="showAcctTab('profile')">Profile</button>
+      <button type="button" class="acct-tab" role="tab" id="acctTabLogin" aria-controls="acctPanelLogin" onclick="showAcctTab('login')">Email &amp; password</button>
     </div>
     <div id="acctPanelProfile" role="tabpanel" aria-labelledby="acctTabProfile" hidden>
+      <div class="field"><label>Email (used to sign in)</label>
+        <div class="acct-email-row"><span id="acctEmailShow"></span><button type="button" class="link-btn" onclick="showAcctTab('login')">Change</button></div>
+      </div>
       <div class="field"><label for="acctName">Name</label><input id="acctName" type="text" autocomplete="name" maxlength="120" placeholder="Your name"></div>
       <div class="field"><label for="acctCompany">Company <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label><input id="acctCompany" type="text" autocomplete="organization" maxlength="150" placeholder="Company name"></div>
       <label style="display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:8px;">Shipping address</label>
@@ -652,6 +683,27 @@
       </div>
       <label class="checkbox-row"><input type="checkbox" id="acctNotify"> Email me when a new lot is posted</label>
       <button class="btn" onclick="saveAddress()">Save profile</button>
+    </div>
+    <div id="acctPanelLogin" role="tabpanel" aria-labelledby="acctTabLogin" hidden>
+      <h4 class="acct-sub">Change email</h4>
+      <p class="acct-note">Current sign-in email: <strong id="ceCurrentShow"></strong></p>
+      <div class="acct-note acct-pending" id="cePending" hidden></div>
+      <form onsubmit="event.preventDefault(); handleChangeEmail();">
+        <div class="field"><label for="ceNew">New email</label><input id="ceNew" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@company.com"></div>
+        <div class="field"><label for="cePass">Current password</label><input id="cePass" type="password" autocomplete="current-password"></div>
+        <div class="error-msg" id="ceError"></div>
+        <button type="submit" class="btn" id="ceBtn">Change email</button>
+      </form>
+      <h4 class="acct-sub acct-sub-sep">Change password</h4>
+      <form onsubmit="event.preventDefault(); handleChangePassword();">
+        <input type="email" id="cpEmail" autocomplete="username" hidden>
+        <div class="field"><label for="cpCurrent">Current password</label><input id="cpCurrent" type="password" autocomplete="current-password"></div>
+        <div class="field"><label for="cpNew">New password (8+ characters)</label><input id="cpNew" type="password" autocomplete="new-password"></div>
+        <div class="field"><label for="cpNew2">Confirm new password</label><input id="cpNew2" type="password" autocomplete="new-password"></div>
+        <div class="error-msg" id="cpError"></div>
+        <button type="submit" class="btn" id="cpBtn">Change password</button>
+      </form>
+      <p style="font-size:12.5px;color:var(--text-muted);margin:14px 0 0;line-height:1.5;">Forgot your current password? Sign out and use "Forgot your password?" on the sign-in screen.</p>
     </div>
     <div id="acctPanelOffers" role="tabpanel" aria-labelledby="acctTabOffers">
     <div class="my-offers-head" style="justify-content:flex-end;">
@@ -1130,6 +1182,10 @@
       history.replaceState(null, "", location.pathname + location.search);
       openAuth("forgot");
       setErr("fpError", "That reset link has expired or was already used. Enter your email to get a new one.");
+    } else if (/message=/.test(h)) {
+      // Email change with "secure email change" on: one of the two links was clicked.
+      history.replaceState(null, "", location.pathname + location.search);
+      showToast("Link confirmed. Now click the confirmation link sent to your other email address.");
     } else if (h === "#forgot-password") {
       history.replaceState(null, "", location.pathname + location.search);
       openAuth("forgot");
@@ -1161,6 +1217,9 @@
     return Object.assign({}, prof, patch);
   }
 
+  // Arriving from the final email-change confirmation link
+  var emailChangeLanding = /type=email_change/.test(window.TR_URL_HASH || "");
+
   async function handleAuthChange(authSession, quiet){
     if (!authSession) {
       session = null; profile = null;
@@ -1171,14 +1230,19 @@
     var prof = await loadProfile(user.id);
     prof = await syncProfileFromSignup(user, prof);
     var wasSignedIn = !!session;
+    var prevEmail = session && session.email;
     profile = prof;
     session = {
       id: user.id,
       email: user.email,
+      newEmail: user.new_email || "",
       name: (prof && prof.name) || (user.user_metadata && user.user_metadata.name) || user.email
     };
     updateAccountUI();
+    refreshEmailDisplay();
     if (!wasSignedIn && !quiet) showToast("Signed in as " + session.name);
+    else if (emailChangeLanding || (prevEmail && prevEmail !== session.email)) showToast("Your sign-in email is now " + session.email);
+    emailChangeLanding = false;
   }
 
   function updateAccountUI(){
@@ -1186,12 +1250,21 @@
     var myOffersBtn = document.getElementById("myOffersBtn");
     var heroCreateBtn = document.getElementById("heroCreateBtn");
     if (session) {
-      acctBtn.textContent = String(session.name).split(" ")[0] + " · Sign out";
+      acctBtn.textContent = "";
+      var first = document.createElement("span");
+      first.className = "acct-first";
+      first.textContent = String(session.name).split(" ")[0];
+      var sep = document.createElement("span");
+      sep.className = "acct-sep";
+      sep.textContent = " · ";
+      acctBtn.append(first, sep, "Sign out");
+      acctBtn.title = "Signed in as " + session.email;
       acctBtn.onclick = window.signOut;
       myOffersBtn.style.display = "inline-block";
       heroCreateBtn.style.display = "none";
     } else {
       acctBtn.textContent = "Sign in";
+      acctBtn.removeAttribute("title");
       acctBtn.onclick = function(){ openAuth("signin"); };
       myOffersBtn.style.display = "none";
       heroCreateBtn.style.display = "inline-block";
@@ -1199,15 +1272,15 @@
   }
   // My account modal: "My offers" and "Profile" (address + alerts) tabs
   window.showAcctTab = function(name){
-    ["offers", "profile"].forEach(function(t){
-      var on = t === name, key = t === "offers" ? "Offers" : "Profile";
+    ["offers", "profile", "login"].forEach(function(t){
+      var on = t === name, key = t.charAt(0).toUpperCase() + t.slice(1);
       var tab = document.getElementById("acctTab" + key);
       tab.classList.toggle("on", on);
       tab.setAttribute("aria-selected", on ? "true" : "false");
       document.getElementById("acctPanel" + key).hidden = !on;
     });
   };
-  document.getElementById("myOffersBtn").onclick = function(){ renderMyOffers(); fillAddressFields(); showAcctTab("offers"); openModal("myOffersOverlay"); };
+  document.getElementById("myOffersBtn").onclick = function(){ renderMyOffers(); fillAddressFields(); clearPasswordFields(); clearEmailFields(); showAcctTab("offers"); openModal("myOffersOverlay"); };
   updateAccountUI();
 
   if (sb) {
@@ -1261,6 +1334,118 @@
     session.name = name;   // header shows the first name
     updateAccountUI();
     showToast("Profile saved");
+  };
+
+  /* ---------- Change email (My account → Email & password) ---------- */
+  function refreshEmailDisplay(){
+    var email = session ? session.email : "";
+    document.getElementById("acctEmailShow").textContent = email;
+    document.getElementById("ceCurrentShow").textContent = email;
+    var pending = document.getElementById("cePending");
+    var pendingEmail = session && session.newEmail;
+    pending.hidden = !pendingEmail;
+    pending.textContent = pendingEmail
+      ? "Waiting for you to confirm " + pendingEmail + ". We sent a confirmation link there (and may also send one to your current email). " +
+        "Click it to finish the change. Until then, keep signing in with your current email."
+      : "";
+  }
+  function clearEmailFields(){
+    refreshEmailDisplay();
+    document.getElementById("ceNew").value = "";
+    document.getElementById("cePass").value = "";
+    setErr("ceError", "");
+  }
+
+  var changeEmailBusy = false;
+  window.handleChangeEmail = async function(){
+    if (changeEmailBusy || !session) return;
+    var newEmail = document.getElementById("ceNew").value.trim().toLowerCase();
+    var cur = document.getElementById("cePass").value;
+    setErr("ceError", "");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { setErr("ceError", "Enter a valid email address."); return; }
+    if (newEmail === String(session.email).toLowerCase()) { setErr("ceError", "That's already your sign-in email."); return; }
+    if (!cur) { setErr("ceError", "Enter your current password."); return; }
+    changeEmailBusy = true;
+    var btn = document.getElementById("ceBtn");
+    btn.disabled = true;
+    try {
+      // Confirm the current password first, so a signed-in browser left open can't be used to take over the account.
+      var check = await sb.auth.signInWithPassword({ email: session.email, password: cur });
+      if (check.error) {
+        var cm = check.error.message || "";
+        if (/rate|too many/i.test(cm)) setErr("ceError", "Too many attempts. Please wait a few minutes and try again.");
+        else setErr("ceError", "Your current password is incorrect.");
+        return;
+      }
+      var res = await sb.auth.updateUser({ email: newEmail }, { emailRedirectTo: location.origin + location.pathname });
+      if (res.error) {
+        var m = res.error.message || "";
+        if (/registered|exists|already/i.test(m)) setErr("ceError", "An account with this email already exists.");
+        else if (/rate|too many|seconds/i.test(m)) setErr("ceError", "Too many attempts. Please wait a few minutes and try again.");
+        else setErr("ceError", "Couldn't change the email: " + m);
+        return;
+      }
+      var u = res.data && res.data.user;
+      if (u && u.email && u.email.toLowerCase() === newEmail) {
+        // Email confirmation is turned off in Supabase: the change applies straight away.
+        session.email = u.email;
+        session.newEmail = "";
+        clearEmailFields();
+        updateAccountUI();
+        showToast("Your sign-in email is now " + u.email);
+        return;
+      }
+      session.newEmail = newEmail;
+      clearEmailFields();
+    } finally {
+      changeEmailBusy = false;
+      btn.disabled = false;
+    }
+  };
+
+  /* ---------- Change password (My account → Email & password) ---------- */
+  function clearPasswordFields(){
+    ["cpCurrent", "cpNew", "cpNew2"].forEach(function(id){ document.getElementById(id).value = ""; });
+    document.getElementById("cpEmail").value = session ? session.email : "";
+    setErr("cpError", "");
+  }
+
+  var changePassBusy = false;
+  window.handleChangePassword = async function(){
+    if (changePassBusy || !session) return;
+    var cur = document.getElementById("cpCurrent").value;
+    var p1 = document.getElementById("cpNew").value;
+    var p2 = document.getElementById("cpNew2").value;
+    setErr("cpError", "");
+    if (!cur) { setErr("cpError", "Enter your current password."); return; }
+    if (p1.length < 8) { setErr("cpError", "Use at least 8 characters for your new password."); return; }
+    if (p1 !== p2) { setErr("cpError", "The two new passwords don't match."); return; }
+    if (p1 === cur) { setErr("cpError", "Please choose a password different from your current one."); return; }
+    changePassBusy = true;
+    var btn = document.getElementById("cpBtn");
+    btn.disabled = true;
+    try {
+      // Confirm the current password first, so a signed-in browser left open can't be used to change it.
+      var check = await sb.auth.signInWithPassword({ email: session.email, password: cur });
+      if (check.error) {
+        var cm = check.error.message || "";
+        if (/rate|too many/i.test(cm)) setErr("cpError", "Too many attempts. Please wait a few minutes and try again.");
+        else setErr("cpError", "Your current password is incorrect.");
+        return;
+      }
+      var res = await sb.auth.updateUser({ password: p1 });
+      if (res.error) {
+        var m = res.error.message || "";
+        if (/different from the old/i.test(m)) setErr("cpError", "Please choose a password different from your current one.");
+        else setErr("cpError", "Couldn't change the password: " + m);
+        return;
+      }
+      clearPasswordFields();
+      showToast("Password changed");
+    } finally {
+      changePassBusy = false;
+      btn.disabled = false;
+    }
   };
 
   /* ---------- Lot details ---------- */
