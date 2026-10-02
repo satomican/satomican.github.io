@@ -169,8 +169,20 @@
     .hero-grid { grid-template-columns: 1fr; }
   }
 
+  /* ---------- How it works ---------- */
+  section.how { padding-top: 26px; }
+  .how-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 20px; }
+  .how-step { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .how-icon { width: 44px; height: 44px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--accent); display: flex; align-items: center; justify-content: center; flex: none; margin-bottom: 2px; }
+  .how-icon svg { width: 22px; height: 22px; }
+  .how-num { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font: 600 11px/20px "IBM Plex Mono", monospace; text-align: center; flex: none; }
+  .how-step strong { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); font-weight: 600; }
+  .how-step p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+  .how-step a { color: var(--brand-orange); font-weight: 600; }
+
   /* ---------- Listings ---------- */
-  section.grading { padding-top: 26px; }
+  section.grading { padding-bottom: 60px; }
+  section.grading .grading-inner { padding-top: 22px; padding-bottom: 0; border-bottom: 0; border-top: 1px solid var(--border); }
   .grading-inner { padding-bottom: 22px; border-bottom: 1px solid var(--border); }
   .grading-title { font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; font-family: "Inter"; }
   .grading-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
@@ -178,7 +190,7 @@
   .grading-item .badge { flex: none; }
   .grading-item p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.55; }
 
-  section.listings { padding-top: 34px; padding-bottom: 60px; }
+  section.listings { padding-top: 34px; padding-bottom: 34px; }
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
   .section-head h2 { font-size: 26px; }
   .section-head .count { color: var(--text-muted); font-size: 13px; font-family: "IBM Plex Mono"; }
@@ -376,6 +388,18 @@
   <symbol id="ic-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
     <path d="M3 3h8l10 10-8 8L3 11V3z" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/>
   </symbol>
+  <symbol id="ic-user-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+    <circle cx="9.5" cy="8" r="3.5"/><path d="M3 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M19 8v6M16 11h6"/>
+  </symbol>
+  <symbol id="ic-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3.5 6 8.5 7 8.5-7"/>
+  </symbol>
+  <symbol id="ic-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+    <rect x="2.5" y="5" width="19" height="14" rx="1.5"/><path d="M2.5 9.5h19M6 15h4"/>
+  </symbol>
+  <symbol id="ic-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M2 5h12v11H2zM14 9h4.5l3.5 3.5V16h-8z"/><circle cx="6" cy="17.5" r="1.8" fill="var(--bg)"/><circle cx="17.5" cy="17.5" r="1.8" fill="var(--bg)"/>
+  </symbol>
 </svg>
 
 <header class="site">
@@ -417,6 +441,47 @@
     </div>
   </section>
 
+  <section class="how wrap" aria-labelledby="howTitle">
+    <div class="grading-inner">
+      <h2 class="grading-title" id="howTitle">How it works</h2>
+      <ol class="how-steps">
+        <li class="how-step">
+          <span class="how-icon" aria-hidden="true"><svg><use href="#ic-user-plus"/></svg></span>
+          <strong><span class="how-num" aria-hidden="true">1</span>Create an account</strong>
+          <p>Sign up free so you can make offers and we can reach you.</p>
+        </li>
+        <li class="how-step">
+          <span class="how-icon" aria-hidden="true"><svg><use href="#ic-tag"/></svg></span>
+          <strong><span class="how-num" aria-hidden="true">2</span>Make an offer</strong>
+          <p>Pick a lot and name your price before it closes. Nothing to pay yet.</p>
+        </li>
+        <li class="how-step">
+          <span class="how-icon" aria-hidden="true"><svg><use href="#ic-mail"/></svg></span>
+          <strong><span class="how-num" aria-hidden="true">3</span>We review it</strong>
+          <p>We'll email you our answer, typically within 1–2 business days.</p>
+        </li>
+        <li class="how-step">
+          <span class="how-icon" aria-hidden="true"><svg><use href="#ic-card"/></svg></span>
+          <strong><span class="how-num" aria-hidden="true">4</span>Pay for your lot</strong>
+          <p>If accepted, pay by ACH or card within 3 business days. <a href="payment.html">Payment</a></p>
+        </li>
+        <li class="how-step">
+          <span class="how-icon" aria-hidden="true"><svg><use href="#ic-truck"/></svg></span>
+          <strong><span class="how-num" aria-hidden="true">5</span>Arrange shipping</strong>
+          <p>We send the packed size and weight; your carrier picks up from our Ohio dock. <a href="shipping.html">Shipping</a></p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="listings wrap" id="listings">
+    <div class="section-head">
+      <h2 id="catTitle">All lots</h2>
+      <span class="count" id="catCount"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
   <section class="grading wrap">
     <div class="grading-inner">
       <h2 class="grading-title">Condition grades</h2>
@@ -435,14 +500,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <section class="listings wrap" id="listings">
-    <div class="section-head">
-      <h2 id="catTitle">All lots</h2>
-      <span class="count" id="catCount"></span>
-    </div>
-    <div class="grid" id="grid"></div>
   </section>
 </main>
 
